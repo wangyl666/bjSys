@@ -42,6 +42,12 @@ const routes: RouteRecordRaw[] = [
         name: 'NoteDetail',
         component: () => import('@/views/notes/NoteDetail.vue'),
         meta: { title: '笔记详情', requiresAuth: true }
+      },
+      {
+        path: 'user',
+        name: 'UserCenter',
+        component: () => import('@/views/user/UserCenter.vue'),
+        meta: { title: '用户中心', requiresAuth: true }
       }
     ]
   }

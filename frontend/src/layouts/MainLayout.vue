@@ -15,6 +15,10 @@
           <el-icon><Document /></el-icon>
           <span>笔记列表</span>
         </el-menu-item>
+        <el-menu-item index="/user">
+          <el-icon><User /></el-icon>
+          <span>用户中心</span>
+        </el-menu-item>
       </el-menu>
       
       <div class="sidebar-bottom">
