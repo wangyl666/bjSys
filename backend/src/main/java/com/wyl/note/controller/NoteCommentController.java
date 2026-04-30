@@ -49,8 +49,8 @@ public class NoteCommentController {
 
     @Operation(summary = "获取评论数")
     @GetMapping("/count")
-    public Result<Integer> getCommentCount(@RequestParam Long noteId) {
-        Integer count = noteCommentService.getCommentCount(noteId);
+    public Result<Long> getCommentCount(@RequestParam Long noteId) {
+        Long count = noteCommentService.getCommentCount(noteId);
         return Result.success(count);
     }
 }

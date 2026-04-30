@@ -37,8 +37,8 @@ public class NoteFavoriteController {
 
     @Operation(summary = "获取收藏数")
     @GetMapping("/count")
-    public Result<Integer> getFavoriteCount(@RequestParam Long noteId) {
-        Integer count = noteFavoriteService.getFavoriteCount(noteId);
+    public Result<Long> getFavoriteCount(@RequestParam Long noteId) {
+        Long count = noteFavoriteService.getFavoriteCount(noteId);
         return Result.success(count);
     }
 }
