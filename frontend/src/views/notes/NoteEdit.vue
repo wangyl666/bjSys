@@ -151,6 +151,9 @@ const noteForm = reactive<NoteDTO>({
   isPublic: 0
 })
 
+const isEditorReady = ref(false)
+const pendingContent = ref('')
+
 const formatTime = (time: string) => {
   return dayjs(time).format('YYYY-MM-DD HH:mm:ss')
 }
@@ -245,8 +248,15 @@ const initEditor = () => {
     },
     tab: '\t',
     after: () => {
+      isEditorReady.value = true
       if (noteForm.content) {
         vditor?.setValue(noteForm.content)
+      } else if (pendingContent.value) {
+        vditor?.setValue(pendingContent.value)
+        pendingContent.value = ''
+      }
+      if (vditor) {
+        vditor.vditor.afterInput = handleContentChange
       }
     }
   })
@@ -316,10 +326,13 @@ const fetchNoteDetail = async () => {
     
     if (note.tags && note.tags.length > 0) {
       selectedTags.value = note.tags.map(t => t.id)
+      noteForm.tagIds = note.tags.map(t => t.id)
     }
     
-    if (vditor && note.content) {
+    if (isEditorReady.value && vditor && note.content) {
       vditor.setValue(note.content)
+    } else if (note.content) {
+      pendingContent.value = note.content
     }
   } catch (error) {
     console.error('获取笔记详情失败:', error)
@@ -456,10 +469,6 @@ onMounted(async () => {
   
   nextTick(() => {
     initEditor()
-    
-    if (vditor) {
-      vditor.vditor.afterInput = handleContentChange
-    }
   })
   
   if (isEdit.value) {
