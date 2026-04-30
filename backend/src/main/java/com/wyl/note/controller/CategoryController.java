@@ -28,6 +28,15 @@ public class CategoryController {
         return Result.success("创建成功", categoryVO);
     }
 
+    @Operation(summary = "更新分类")
+    @PutMapping("/{id}")
+    public Result<CategoryVO> updateCategory(@PathVariable Long id,
+                                              @RequestParam String name,
+                                              @AuthenticationPrincipal UserDetailsImpl userDetails) {
+        CategoryVO categoryVO = categoryService.updateCategory(id, name, userDetails.getId());
+        return Result.success("修改成功", categoryVO);
+    }
+
     @Operation(summary = "删除分类")
     @DeleteMapping("/{id}")
     public Result<Void> deleteCategory(@PathVariable Long id,
