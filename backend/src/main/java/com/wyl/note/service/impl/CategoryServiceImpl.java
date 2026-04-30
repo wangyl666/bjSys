@@ -14,6 +14,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -89,7 +91,7 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
 
         List<Long> categoryIds = categories.stream().map(Category::getId).collect(Collectors.toList());
         
-        Map<Long, Long> noteCountMap = Map.of();
+        Map<Long, Long> noteCountMap = Collections.emptyMap();
         if (!categoryIds.isEmpty()) {
             List<Note> notes = noteService.list(new LambdaQueryWrapper<Note>()
                     .eq(Note::getUserId, userId)
