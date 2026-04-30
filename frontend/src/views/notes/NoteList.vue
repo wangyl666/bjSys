@@ -74,8 +74,12 @@
             {{ formatTime(scope.row.updatedAt) }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="180" fixed="right">
+        <el-table-column label="操作" width="240" fixed="right">
           <template #default="scope">
+            <el-button type="primary" text @click="handleCopyNote(scope.row)">
+              <el-icon><CopyDocument /></el-icon>
+              复制
+            </el-button>
             <el-button type="primary" text @click="handleEditNote(scope.row)">
               <el-icon><Edit /></el-icon>
               编辑
@@ -111,9 +115,9 @@
 import { ref, reactive, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { getNoteList, deleteNote } from '@/api/note'
+import { getNoteList, deleteNote, copyNote } from '@/api/note'
 import { getCategories } from '@/api/category'
-import { Plus, Edit, View, Delete, Search } from '@element-plus/icons-vue'
+import { Plus, Edit, View, Delete, Search, CopyDocument } from '@element-plus/icons-vue'
 import dayjs from 'dayjs'
 import type { NoteVO, CategoryVO, PageParams } from '@/types'
 
@@ -168,6 +172,16 @@ const handleCreateNote = () => {
 
 const handleEditNote = (note: NoteVO) => {
   router.push(`/notes/${note.id}/edit`)
+}
+
+const handleCopyNote = async (note: NoteVO) => {
+  try {
+    const res = await copyNote(note.id)
+    ElMessage.success('复制成功')
+    router.push(`/notes/${res.data.id}/edit`)
+  } catch (error) {
+    console.error('复制笔记失败:', error)
+  }
 }
 
 const handleViewNote = (note: NoteVO) => {
