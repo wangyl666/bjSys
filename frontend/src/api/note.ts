@@ -24,6 +24,13 @@ export function deleteNote(id: number): Promise<Result<void>> {
   })
 }
 
+export function copyNote(id: number): Promise<Result<NoteVO>> {
+  return request({
+    url: `/notes/${id}/copy`,
+    method: 'post'
+  })
+}
+
 export function getNoteById(id: number): Promise<Result<NoteVO>> {
   return request({
     url: `/notes/${id}`,
