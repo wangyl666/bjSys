@@ -165,4 +165,37 @@ public class NoteServiceImpl extends ServiceImpl<NoteMapper, Note> implements No
             noteTagService.saveBatch(noteTags);
         }
     }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public NoteVO copyNote(Long id, Long userId) {
+        Note originalNote = getById(id);
+        if (originalNote == null) {
+            throw new RuntimeException("笔记不存在");
+        }
+        if (!originalNote.getUserId().equals(userId) && originalNote.getIsPublic() == 0) {
+            throw new RuntimeException("无权限复制此笔记");
+        }
+
+        Note copiedNote = new Note();
+        BeanUtils.copyProperties(originalNote, copiedNote);
+        copiedNote.setId(null);
+        copiedNote.setUserId(userId);
+        copiedNote.setTitle(originalNote.getTitle() + " (副本)");
+        copiedNote.setViewCount(0);
+        copiedNote.setCreatedAt(LocalDateTime.now());
+        copiedNote.setUpdatedAt(LocalDateTime.now());
+        save(copiedNote);
+
+        List<NoteTag> originalNoteTags = noteTagService.list(
+                new LambdaQueryWrapper<NoteTag>().eq(NoteTag::getNoteId, id));
+        if (!CollectionUtils.isEmpty(originalNoteTags)) {
+            List<Long> tagIds = originalNoteTags.stream()
+                    .map(NoteTag::getTagId)
+                    .collect(Collectors.toList());
+            saveNoteTags(copiedNote.getId(), tagIds);
+        }
+
+        return getNoteById(copiedNote.getId(), userId);
+    }
 }
