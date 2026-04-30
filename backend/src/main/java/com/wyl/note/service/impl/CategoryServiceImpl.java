@@ -8,8 +8,9 @@ import com.wyl.note.mapper.CategoryMapper;
 import com.wyl.note.service.CategoryService;
 import com.wyl.note.service.NoteService;
 import com.wyl.note.vo.CategoryVO;
-import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,10 +22,11 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
-@RequiredArgsConstructor
 public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> implements CategoryService {
 
-    private final NoteService noteService;
+    @Autowired
+    @Lazy
+    private NoteService noteService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -91,7 +93,7 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
 
         List<Long> categoryIds = categories.stream().map(Category::getId).collect(Collectors.toList());
         
-        Map<Long, Long> noteCountMap = Collections.emptyMap();
+        Map<Long, Long> noteCountMap;
         if (!categoryIds.isEmpty()) {
             List<Note> notes = noteService.list(new LambdaQueryWrapper<Note>()
                     .eq(Note::getUserId, userId)
@@ -99,10 +101,13 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
             
             noteCountMap = notes.stream()
                     .collect(Collectors.groupingBy(Note::getCategoryId, Collectors.counting()));
+        } else {
+            noteCountMap = Collections.emptyMap();
         }
 
+        final Map<Long, Long> finalNoteCountMap = noteCountMap;
         return categories.stream()
-                .map(cat -> toVO(cat, noteCountMap.getOrDefault(cat.getId(), 0L)))
+                .map(cat -> toVO(cat, finalNoteCountMap.getOrDefault(cat.getId(), 0L)))
                 .collect(Collectors.toList());
     }
 
