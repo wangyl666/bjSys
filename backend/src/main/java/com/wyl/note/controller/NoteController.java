@@ -64,4 +64,12 @@ public class NoteController {
         Page<NoteVO> notePage = noteService.getNotePage(categoryId, keyword, page, size, userDetails.getId());
         return Result.success(notePage);
     }
+
+    @Operation(summary = "复制笔记")
+    @PostMapping("/{id}/copy")
+    public Result<NoteVO> copyNote(@PathVariable Long id,
+                                     @AuthenticationPrincipal UserDetailsImpl userDetails) {
+        NoteVO noteVO = noteService.copyNote(id, userDetails.getId());
+        return Result.success("复制成功", noteVO);
+    }
 }
