@@ -74,10 +74,10 @@ public class CommunityNoteServiceImpl implements CommunityNoteService {
 
         Map<Long, List<TagVO>> noteTagsMap = getNoteTagsMap(noteIds);
 
-        Map<Long, Integer> favoriteCountMap = noteIds.stream()
+        Map<Long, Long> favoriteCountMap = noteIds.stream()
                 .collect(Collectors.toMap(noteId -> noteId, noteFavoriteService::getFavoriteCount));
 
-        Map<Long, Integer> commentCountMap = noteIds.stream()
+        Map<Long, Long> commentCountMap = noteIds.stream()
                 .collect(Collectors.toMap(noteId -> noteId, noteCommentService::getCommentCount));
 
         Map<Long, Boolean> isFavoritedMap = userId == null ? Collections.emptyMap() :
@@ -102,8 +102,8 @@ public class CommunityNoteServiceImpl implements CommunityNoteService {
             }
 
             vo.setTags(noteTagsMap.getOrDefault(note.getId(), new ArrayList<>()));
-            vo.setFavoriteCount(favoriteCountMap.getOrDefault(note.getId(), 0));
-            vo.setCommentCount(commentCountMap.getOrDefault(note.getId(), 0));
+            vo.setFavoriteCount(favoriteCountMap.getOrDefault(note.getId(), 0L));
+            vo.setCommentCount(commentCountMap.getOrDefault(note.getId(), 0L));
             vo.setIsFavorited(isFavoritedMap.getOrDefault(note.getId(), false));
 
             return vo;

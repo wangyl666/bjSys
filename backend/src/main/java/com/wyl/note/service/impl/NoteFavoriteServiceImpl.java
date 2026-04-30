@@ -53,7 +53,7 @@ public class NoteFavoriteServiceImpl extends ServiceImpl<NoteFavoriteMapper, Not
     }
 
     @Override
-    public Integer getFavoriteCount(Long noteId) {
+    public Long getFavoriteCount(Long noteId) {
         return count(
                 new LambdaQueryWrapper<NoteFavorite>()
                         .eq(NoteFavorite::getNoteId, noteId)

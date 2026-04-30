@@ -114,7 +114,7 @@ public class NoteCommentServiceImpl extends ServiceImpl<NoteCommentMapper, NoteC
     }
 
     @Override
-    public Integer getCommentCount(Long noteId) {
+    public Long getCommentCount(Long noteId) {
         return count(
                 new LambdaQueryWrapper<NoteComment>()
                         .eq(NoteComment::getNoteId, noteId)

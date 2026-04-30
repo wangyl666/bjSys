@@ -7,7 +7,7 @@ public interface NoteFavoriteService extends IService<NoteFavorite> {
 
     Boolean toggleFavorite(Long noteId, Long userId);
 
-    Integer getFavoriteCount(Long noteId);
+    Long getFavoriteCount(Long noteId);
 
     Boolean isFavorited(Long noteId, Long userId);
 }

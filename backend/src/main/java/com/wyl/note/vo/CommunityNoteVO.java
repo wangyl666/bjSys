@@ -27,9 +27,9 @@ public class CommunityNoteVO {
 
     private Integer viewCount;
 
-    private Integer favoriteCount;
+    private Long favoriteCount;
 
-    private Integer commentCount;
+    private Long commentCount;
 
     private Boolean isFavorited;
 

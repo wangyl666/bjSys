@@ -16,5 +16,5 @@ public interface NoteCommentService extends IService<NoteComment> {
 
     List<NoteCommentVO> getCommentsByNoteId(Long noteId);
 
-    Integer getCommentCount(Long noteId);
+    Long getCommentCount(Long noteId);
 }
