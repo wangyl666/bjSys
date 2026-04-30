@@ -191,13 +191,21 @@ const initEditor = () => {
       multiple: false,
       handler: async (files: File[]) => {
         if (!files || files.length === 0) return
+        const file = files[0]
         try {
-          const res = await uploadImage(files[0])
-          if (vditor) {
-            vditor.insertValue(`![${files[0].name}](${res.data.url})`)
+          const res = await uploadImage(file)
+          return {
+            errFiles: [],
+            succMap: {
+              [file.name]: res.data.url
+            }
           }
         } catch (error) {
           ElMessage.error('图片上传失败')
+          return {
+            errFiles: [file.name],
+            succMap: {}
+          }
         }
       }
     },
@@ -388,6 +396,17 @@ onMounted(async () => {
     fetchCategories(),
     fetchTags()
   ])
+  
+  if (!isEdit.value) {
+    const selectedCategoryId = localStorage.getItem('selectedCategoryId')
+    if (selectedCategoryId) {
+      const categoryId = Number(selectedCategoryId)
+      if (categories.value.find(c => c.id === categoryId)) {
+        noteForm.categoryId = categoryId
+      }
+      localStorage.removeItem('selectedCategoryId')
+    }
+  }
   
   nextTick(() => {
     initEditor()
