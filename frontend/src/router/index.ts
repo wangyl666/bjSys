@@ -17,8 +17,14 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/',
     component: () => import('@/layouts/MainLayout.vue'),
-    redirect: '/notes',
+    redirect: '/',
     children: [
+      {
+        path: '',
+        name: 'Home',
+        component: () => import('@/views/home/Home.vue'),
+        meta: { title: '首页', requiresAuth: true }
+      },
       {
         path: 'notes',
         name: 'Notes',
@@ -42,12 +48,6 @@ const routes: RouteRecordRaw[] = [
         name: 'NoteDetail',
         component: () => import('@/views/notes/NoteDetail.vue'),
         meta: { title: '笔记详情', requiresAuth: true }
-      },
-      {
-        path: 'user',
-        name: 'UserCenter',
-        component: () => import('@/views/user/UserCenter.vue'),
-        meta: { title: '用户中心', requiresAuth: true }
       }
     ]
   }
@@ -75,7 +75,7 @@ router.beforeEach(async (to, _from, next) => {
       next('/login')
     }
   } else if ((to.path === '/login' || to.path === '/register') && token) {
-    next('/notes')
+    next('/')
   } else {
     next()
   }
