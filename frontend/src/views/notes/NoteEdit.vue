@@ -155,6 +155,33 @@ const formatTime = (time: string) => {
   return dayjs(time).format('YYYY-MM-DD HH:mm:ss')
 }
 
+const handlePasteImage = async (e: ClipboardEvent) => {
+  const items = e.clipboardData?.items
+  if (!items) return
+
+  for (const item of items) {
+    if (item.type.indexOf('image') !== -1) {
+      e.preventDefault()
+      
+      const file = item.getAsFile()
+      if (!file) continue
+      
+      try {
+        const res = await uploadImage(file)
+        if (vditor && res.data.url) {
+          const markdown = `![${file.name}](${res.data.url})`
+          vditor.insertValue(markdown)
+          ElMessage.success('图片粘贴成功')
+        }
+      } catch (error) {
+        console.error('粘贴图片上传失败:', error)
+        ElMessage.error('图片粘贴失败，请重试')
+      }
+      return
+    }
+  }
+}
+
 const initEditor = () => {
   if (!editorRef.value) return
   
@@ -209,12 +236,25 @@ const initEditor = () => {
         }
       }
     },
+    paste: {
+      enable: true,
+      style: true,
+      handler: async (text: string, html?: string) => {
+        return text
+      }
+    },
+    tab: '\t',
     after: () => {
       if (noteForm.content) {
         vditor?.setValue(noteForm.content)
       }
     }
   })
+
+  const editorElement = document.getElementById('vditor')
+  if (editorElement) {
+    editorElement.addEventListener('paste', handlePasteImage)
+  }
 }
 
 const debouncedSaveDraft = debounce(async () => {
@@ -225,7 +265,8 @@ const debouncedSaveDraft = debounce(async () => {
     noteId: noteId.value,
     title: noteForm.title,
     content: content,
-    categoryId: noteForm.categoryId
+    categoryId: noteForm.categoryId,
+    tagIds: selectedTags.value
   }
   
   try {
@@ -311,6 +352,11 @@ const handleRestoreDraft = () => {
   noteForm.title = draftData.value.title || ''
   noteForm.content = draftData.value.content || ''
   noteForm.categoryId = draftData.value.categoryId || undefined
+  
+  if (draftData.value.tagIds && draftData.value.tagIds.length > 0) {
+    selectedTags.value = draftData.value.tagIds
+    noteForm.tagIds = draftData.value.tagIds
+  }
   
   if (vditor && draftData.value.content) {
     vditor.setValue(draftData.value.content)
@@ -424,6 +470,10 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
+  const editorElement = document.getElementById('vditor')
+  if (editorElement) {
+    editorElement.removeEventListener('paste', handlePasteImage)
+  }
   if (vditor) {
     vditor.destroy()
     vditor = null

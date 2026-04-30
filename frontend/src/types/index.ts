@@ -88,6 +88,7 @@ export interface Draft {
   title: string | null
   content: string | null
   categoryId: number | null
+  tagIds: number[] | null
   savedAt: string
 }
 
