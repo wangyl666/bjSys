@@ -19,6 +19,14 @@
           <el-icon><FolderOpened /></el-icon>
           <span>知识库</span>
         </el-menu-item>
+        <el-menu-item index="/notes">
+          <el-icon><Document /></el-icon>
+          <span>我的笔记</span>
+        </el-menu-item>
+        <el-menu-item index="/tags">
+          <el-icon><PriceTag /></el-icon>
+          <span>标签管理</span>
+        </el-menu-item>
       </el-menu>
       
       <div class="sidebar-bottom">
@@ -143,7 +151,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/store/user'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import { updateUserInfo, updatePassword, uploadAvatar } from '@/api/user'
-import { Document, Edit, User, SwitchButton, HomeFilled, ArrowDown, Key, Plus, FolderOpened } from '@element-plus/icons-vue'
+import { Document, Edit, User, SwitchButton, HomeFilled, ArrowDown, Key, Plus, FolderOpened, PriceTag } from '@element-plus/icons-vue'
 import type { UpdateUserInfoDTO, UpdatePasswordDTO } from '@/types'
 
 const route = useRoute()
@@ -157,7 +165,10 @@ const activeMenu = computed(() => {
     return '/'
   }
   if (route.path.startsWith('/notes')) {
-    return '/knowledge'
+    return '/notes'
+  }
+  if (route.path.startsWith('/tags')) {
+    return '/tags'
   }
   if (route.path.startsWith('/knowledge')) {
     return '/knowledge'
