@@ -158,21 +158,31 @@ const formatTime = (time: string) => {
   return dayjs(time).format('YYYY-MM-DD HH:mm:ss')
 }
 
-const handlePasteImage = async (e: ClipboardEvent) => {
+const handlePasteImage = (e: ClipboardEvent) => {
   const items = e.clipboardData?.items
   if (!items) return
 
+  let hasImage = false
+  let imageFile: File | null = null
+
   for (const item of items) {
     if (item.type.indexOf('image') !== -1) {
-      e.preventDefault()
-      
-      const file = item.getAsFile()
-      if (!file) continue
-      
+      hasImage = true
+      imageFile = item.getAsFile()
+      break
+    }
+  }
+
+  if (hasImage && imageFile) {
+    e.preventDefault()
+    e.stopPropagation()
+    e.stopImmediatePropagation()
+
+    ;(async () => {
       try {
-        const res = await uploadImage(file)
+        const res = await uploadImage(imageFile!)
         if (vditor && res.data.url) {
-          const markdown = `![${file.name}](${res.data.url})`
+          const markdown = `![${imageFile!.name}](${res.data.url})`
           vditor.insertValue(markdown)
           ElMessage.success('图片粘贴成功')
         }
@@ -180,8 +190,7 @@ const handlePasteImage = async (e: ClipboardEvent) => {
         console.error('粘贴图片上传失败:', error)
         ElMessage.error('图片粘贴失败，请重试')
       }
-      return
-    }
+    })()
   }
 }
 
