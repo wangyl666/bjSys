@@ -16,6 +16,14 @@ export function createCategory(name: string): Promise<Result<CategoryVO>> {
   })
 }
 
+export function updateCategory(id: number, name: string): Promise<Result<CategoryVO>> {
+  return request({
+    url: `/categories/${id}`,
+    method: 'put',
+    params: { name }
+  })
+}
+
 export function deleteCategory(id: number): Promise<Result<void>> {
   return request({
     url: `/categories/${id}`,

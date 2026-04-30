@@ -19,6 +19,8 @@ public class User {
 
     private String avatar;
 
+    private String role;
+
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createdAt;
 

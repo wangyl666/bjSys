@@ -26,12 +26,13 @@ public class JwtUtil {
         return Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
 
-    public String generateToken(Long userId, String username) {
+    public String generateToken(Long userId, String username, String role) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + expiration);
 
         Map<String, Object> claims = new HashMap<>();
         claims.put("username", username);
+        claims.put("role", role);
 
         return Jwts.builder()
                 .setClaims(claims)
@@ -50,6 +51,11 @@ public class JwtUtil {
     public String getUsernameFromToken(String token) {
         Claims claims = getClaimsFromToken(token);
         return claims.get("username", String.class);
+    }
+
+    public String getRoleFromToken(String token) {
+        Claims claims = getClaimsFromToken(token);
+        return claims.get("role", String.class);
     }
 
     public boolean validateToken(String token) {
