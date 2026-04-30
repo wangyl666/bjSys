@@ -41,6 +41,16 @@
             </el-tag>
           </template>
         </el-table-column>
+        <el-table-column prop="viewedByAdmin" label="查看状态" width="100">
+          <template #default="scope">
+            <el-tag v-if="scope.row.viewedByAdmin === 1" type="success" effect="dark" size="small">
+              已查看
+            </el-tag>
+            <el-tag v-else type="info" effect="dark" size="small">
+              未查看
+            </el-tag>
+          </template>
+        </el-table-column>
         <el-table-column prop="submittedAt" label="提交时间" width="180">
           <template #default="scope">
             {{ formatTime(scope.row.submittedAt) }}
@@ -62,32 +72,33 @@
             <span v-else class="text-muted">无</span>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="200" fixed="right">
+        <el-table-column label="操作" width="250" fixed="right">
           <template #default="scope">
+            <el-button 
+              type="primary" 
+              text 
+              @click="handleViewNote(scope.row)"
+            >
+              查看
+            </el-button>
             <template v-if="scope.row.approvalStatus === 'PENDING'">
               <el-button 
-                type="success" 
+                :type="scope.row.viewedByAdmin === 1 ? 'success' : 'info'"
+                :disabled="scope.row.viewedByAdmin !== 1"
                 text 
                 @click="handleApprove(scope.row)"
               >
                 通过
               </el-button>
               <el-button 
-                type="danger" 
+                :type="scope.row.viewedByAdmin === 1 ? 'danger' : 'info'"
+                :disabled="scope.row.viewedByAdmin !== 1"
                 text 
                 @click="handleReject(scope.row)"
               >
                 拒绝
               </el-button>
             </template>
-            <el-button 
-              v-else
-              type="primary" 
-              text 
-              @click="handleViewNote(scope.row)"
-            >
-              查看笔记
-            </el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -168,7 +179,7 @@ import { ref, reactive, onMounted, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import Vditor from 'vditor'
-import { getPendingApprovals, processApproval, getMyApprovals } from '@/api/approval'
+import { getPendingApprovals, processApproval, getMyApprovals, viewApproval } from '@/api/approval'
 import { getNoteById } from '@/api/note'
 import dayjs from 'dayjs'
 import type { NoteApprovalVO, NoteVO } from '@/types'
@@ -195,6 +206,7 @@ const approvalForm = reactive({
 
 const noteDetailVisible = ref(false)
 const selectedNote = ref<NoteVO | null>(null)
+const currentViewingApprovalId = ref<number | null>(null)
 
 const formatTime = (time: string) => {
   return dayjs(time).format('YYYY-MM-DD HH:mm:ss')
@@ -250,10 +262,18 @@ const handleStatusChange = () => {
 const handleViewNote = async (approval: NoteApprovalVO) => {
   if (!approval.noteId) return
   
+  currentViewingApprovalId.value = approval.id
+  
   try {
     const res = await getNoteById(approval.noteId)
     selectedNote.value = res.data
     noteDetailVisible.value = true
+    
+    if (approval.approvalStatus === 'PENDING' && approval.viewedByAdmin !== 1) {
+      await viewApproval(approval.id)
+      approval.viewedByAdmin = 1
+      ElMessage.success('已标记为已查看')
+    }
     
     nextTick(() => {
       renderNotePreview()

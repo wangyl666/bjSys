@@ -71,4 +71,13 @@ public class NoteApprovalController {
                 dto.getApprovalId(), userDetails.getId(), dto.getApproved(), dto.getRemark());
         return Result.success(dto.getApproved() ? "审批通过" : "审批拒绝", approvalVO);
     }
+
+    @Operation(summary = "管理员查看审批记录（标记为已查看）")
+    @PostMapping("/view/{approvalId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public Result<NoteApprovalVO> viewApproval(@PathVariable Long approvalId,
+                                                 @AuthenticationPrincipal UserDetailsImpl userDetails) {
+        NoteApprovalVO approvalVO = noteApprovalService.viewApproval(approvalId, userDetails.getId());
+        return Result.success("已标记为已查看", approvalVO);
+    }
 }

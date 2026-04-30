@@ -28,4 +28,12 @@ public class NoteApprovalVO {
     private LocalDateTime submittedAt;
 
     private LocalDateTime approvedAt;
+
+    private Integer viewedByAdmin;
+
+    private LocalDateTime viewedAt;
+
+    private Long viewedAdminId;
+
+    private String viewedAdminName;
 }

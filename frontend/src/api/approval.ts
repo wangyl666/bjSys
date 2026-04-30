@@ -39,3 +39,10 @@ export function processApproval(approvalId: number, approved: boolean, remark?: 
     data: { approvalId, approved, remark }
   })
 }
+
+export function viewApproval(approvalId: number): Promise<Result<NoteApprovalVO>> {
+  return request({
+    url: `/approvals/view/${approvalId}`,
+    method: 'post'
+  })
+}

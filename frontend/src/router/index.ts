@@ -73,6 +73,18 @@ const routes: RouteRecordRaw[] = [
         name: 'ApprovalManage',
         component: () => import('@/views/admin/ApprovalManage.vue'),
         meta: { title: '审批管理', requiresAuth: true, requiresAdmin: true }
+      },
+      {
+        path: 'community',
+        name: 'Community',
+        component: () => import('@/views/community/CommunityList.vue'),
+        meta: { title: '笔记社区', requiresAuth: true }
+      },
+      {
+        path: 'community/:id',
+        name: 'CommunityNoteDetail',
+        component: () => import('@/views/community/CommunityNoteDetail.vue'),
+        meta: { title: '笔记详情', requiresAuth: true }
       }
     ]
   }

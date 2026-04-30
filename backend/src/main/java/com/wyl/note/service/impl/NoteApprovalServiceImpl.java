@@ -76,6 +76,9 @@ public class NoteApprovalServiceImpl extends ServiceImpl<NoteApprovalMapper, Not
         if (!"PENDING".equals(approval.getApprovalStatus())) {
             throw new RuntimeException("该审批已被处理");
         }
+        if (approval.getViewedByAdmin() == null || approval.getViewedByAdmin() == 0) {
+            throw new RuntimeException("请先查看笔记内容后再进行审核");
+        }
         
         approval.setAdminId(adminId);
         approval.setAdminRemark(remark);
@@ -130,6 +133,25 @@ public class NoteApprovalServiceImpl extends ServiceImpl<NoteApprovalMapper, Not
         return convertToVO(approval);
     }
 
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public NoteApprovalVO viewApproval(Long approvalId, Long adminId) {
+        NoteApproval approval = getById(approvalId);
+        if (approval == null) {
+            throw new RuntimeException("审批记录不存在");
+        }
+        if (!"PENDING".equals(approval.getApprovalStatus())) {
+            throw new RuntimeException("该审批已被处理");
+        }
+        
+        approval.setViewedByAdmin(1);
+        approval.setViewedAt(LocalDateTime.now());
+        approval.setViewedAdminId(adminId);
+        updateById(approval);
+        
+        return convertToVO(approval);
+    }
+
     private NoteApprovalVO convertToVO(NoteApproval approval) {
         NoteApprovalVO vo = new NoteApprovalVO();
         BeanUtils.copyProperties(approval, vo);
@@ -151,6 +173,13 @@ public class NoteApprovalServiceImpl extends ServiceImpl<NoteApprovalMapper, Not
             }
         }
         
+        if (approval.getViewedAdminId() != null) {
+            User viewedAdmin = userService.getById(approval.getViewedAdminId());
+            if (viewedAdmin != null) {
+                vo.setViewedAdminName(viewedAdmin.getNickname() != null ? viewedAdmin.getNickname() : viewedAdmin.getUsername());
+            }
+        }
+        
         return vo;
     }
 
@@ -168,6 +197,12 @@ public class NoteApprovalServiceImpl extends ServiceImpl<NoteApprovalMapper, Not
         List<Long> adminIds = records.stream()
                 .filter(a -> a.getAdminId() != null)
                 .map(NoteApproval::getAdminId).distinct().collect(Collectors.toList());
+        List<Long> viewedAdminIds = records.stream()
+                .filter(a -> a.getViewedAdminId() != null)
+                .map(NoteApproval::getViewedAdminId).distinct().collect(Collectors.toList());
+        
+        adminIds.addAll(viewedAdminIds);
+        adminIds = adminIds.stream().distinct().collect(Collectors.toList());
         
         Map<Long, Note> noteMap = noteService.listByIds(noteIds).stream()
                 .collect(Collectors.toMap(Note::getId, n -> n));
@@ -196,6 +231,13 @@ public class NoteApprovalServiceImpl extends ServiceImpl<NoteApprovalMapper, Not
                 User admin = adminMap.get(approval.getAdminId());
                 if (admin != null) {
                     vo.setAdminName(admin.getNickname() != null ? admin.getNickname() : admin.getUsername());
+                }
+            }
+            
+            if (approval.getViewedAdminId() != null) {
+                User viewedAdmin = adminMap.get(approval.getViewedAdminId());
+                if (viewedAdmin != null) {
+                    vo.setViewedAdminName(viewedAdmin.getNickname() != null ? viewedAdmin.getNickname() : viewedAdmin.getUsername());
                 }
             }
             

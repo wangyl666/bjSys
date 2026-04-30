@@ -24,4 +24,10 @@ public class NoteApproval {
     private LocalDateTime submittedAt;
 
     private LocalDateTime approvedAt;
+
+    private Integer viewedByAdmin;
+
+    private LocalDateTime viewedAt;
+
+    private Long viewedAdminId;
 }

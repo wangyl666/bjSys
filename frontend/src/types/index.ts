@@ -114,3 +114,44 @@ export interface PageParams {
   categoryId?: number
   keyword?: string
 }
+
+export interface CommunityNoteVO {
+  id: number
+  userId: number
+  username: string
+  userAvatar: string | null
+  categoryId: number | null
+  categoryName: string | null
+  title: string
+  content: string
+  summary: string | null
+  viewCount: number
+  favoriteCount: number
+  commentCount: number
+  isFavorited: boolean
+  tags: TagVO[]
+  createdAt: string
+  updatedAt: string
+}
+
+export interface NoteCommentVO {
+  id: number
+  noteId: number
+  userId: number
+  username: string
+  userAvatar: string | null
+  parentId: number | null
+  replyToUserId: number | null
+  replyToUsername: string | null
+  content: string
+  children?: NoteCommentVO[]
+  createdAt: string
+  updatedAt: string
+}
+
+export interface CreateCommentDTO {
+  noteId: number
+  parentId?: number
+  replyToUserId?: number
+  content: string
+}

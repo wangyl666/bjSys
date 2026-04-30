@@ -19,6 +19,10 @@
           <el-icon><FolderOpened /></el-icon>
           <span>知识库</span>
         </el-menu-item>
+        <el-menu-item index="/community">
+          <el-icon><OfficeBuilding /></el-icon>
+          <span>笔记社区</span>
+        </el-menu-item>
         <el-menu-item index="/notes">
           <el-icon><Document /></el-icon>
           <span>我的笔记</span>
@@ -159,7 +163,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/store/user'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import { updateUserInfo, updatePassword, uploadAvatar } from '@/api/user'
-import { Document, Edit, User, SwitchButton, HomeFilled, ArrowDown, Key, Plus, FolderOpened, PriceTag, Promotion } from '@element-plus/icons-vue'
+import { Document, Edit, User, SwitchButton, HomeFilled, ArrowDown, Key, Plus, FolderOpened, PriceTag, Promotion, OfficeBuilding } from '@element-plus/icons-vue'
 import type { UpdateUserInfoDTO, UpdatePasswordDTO } from '@/types'
 
 const route = useRoute()
@@ -171,6 +175,9 @@ const userInfo = computed(() => userStore.userInfo)
 const activeMenu = computed(() => {
   if (route.path === '/') {
     return '/'
+  }
+  if (route.path.startsWith('/community')) {
+    return '/community'
   }
   if (route.path.startsWith('/notes')) {
     return '/notes'

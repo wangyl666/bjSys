@@ -16,4 +16,6 @@ public interface NoteApprovalService extends IService<NoteApproval> {
     Page<NoteApprovalVO> getPendingApprovals(Integer page, Integer size);
 
     NoteApprovalVO getApprovalDetail(Long approvalId, Long userId, String role);
+
+    NoteApprovalVO viewApproval(Long approvalId, Long adminId);
 }
