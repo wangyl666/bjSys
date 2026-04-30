@@ -174,7 +174,7 @@ public class NoteApprovalServiceImpl extends ServiceImpl<NoteApprovalMapper, Not
         Map<Long, User> userMap = userService.listByIds(userIds).stream()
                 .collect(Collectors.toMap(User::getId, u -> u));
         
-        Map<Long, User> adminMap = adminIds.isEmpty() ? Map.of() :
+        Map<Long, User> adminMap = adminIds.isEmpty() ? Collections.emptyMap() :
                 userService.listByIds(adminIds).stream().collect(Collectors.toMap(User::getId, u -> u));
         
         List<NoteApprovalVO> voList = records.stream().map(approval -> {
