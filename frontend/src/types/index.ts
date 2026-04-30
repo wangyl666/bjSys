@@ -40,6 +40,7 @@ export interface CategoryVO {
   sort: number
   createdAt: string
   updatedAt: string
+  noteCount: number
 }
 
 export interface TagVO {

@@ -36,7 +36,7 @@
               >
                 <el-icon class="category-icon"><Folder /></el-icon>
                 <span class="category-name">{{ category.name }}</span>
-                <span class="note-count">{{ getNoteCountByCategory(category.id) }}</span>
+                <span class="note-count">{{ category.noteCount || 0 }}</span>
                 <el-dropdown trigger="click" placement="bottom" @command="handleCategoryCommand">
                   <span class="category-actions" @click.stop>
                     <el-icon><MoreFilled /></el-icon>
@@ -223,9 +223,7 @@ const formatTime = (time: string) => {
   return dayjs(time).format('YYYY-MM-DD HH:mm:ss')
 }
 
-const getNoteCountByCategory = (categoryId: number) => {
-  return noteList.value.filter(n => n.categoryId === categoryId).length
-}
+
 
 const fetchNoteList = async () => {
   loading.value = true
