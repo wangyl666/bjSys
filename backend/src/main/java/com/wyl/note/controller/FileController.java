@@ -65,14 +65,17 @@ public class FileController {
     }
 
     @Operation(summary = "访问图片")
-    @GetMapping("/{userId}/{date}/{fileName:.+}")
+    @GetMapping("/{userId}/{year}/{month}/{day}/{fileName:.+}")
     public ResponseEntity<Resource> getImage(@PathVariable Long userId,
-                                              @PathVariable String date,
+                                              @PathVariable String year,
+                                              @PathVariable String month,
+                                              @PathVariable String day,
                                               @PathVariable String fileName) {
         try {
+            String datePath = year + "/" + month + "/" + day;
             Path filePath = Paths.get(uploadPath)
                     .resolve(userId.toString())
-                    .resolve(date.replace("-", "/"))
+                    .resolve(datePath)
                     .resolve(fileName)
                     .normalize();
             log.info("尝试访问图片: {}", filePath);

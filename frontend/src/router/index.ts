@@ -26,10 +26,10 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '首页', requiresAuth: true }
       },
       {
-        path: 'notes',
-        name: 'Notes',
-        component: () => import('@/views/notes/NoteList.vue'),
-        meta: { title: '笔记列表', requiresAuth: true }
+        path: 'knowledge',
+        name: 'KnowledgeBase',
+        component: () => import('@/views/knowledge/KnowledgeBase.vue'),
+        meta: { title: '知识库', requiresAuth: true }
       },
       {
         path: 'notes/create',

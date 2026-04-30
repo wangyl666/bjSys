@@ -15,9 +15,9 @@
           <el-icon><HomeFilled /></el-icon>
           <span>首页</span>
         </el-menu-item>
-        <el-menu-item index="/notes">
-          <el-icon><Document /></el-icon>
-          <span>笔记列表</span>
+        <el-menu-item index="/knowledge">
+          <el-icon><FolderOpened /></el-icon>
+          <span>知识库</span>
         </el-menu-item>
       </el-menu>
       
@@ -143,7 +143,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/store/user'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import { updateUserInfo, updatePassword, uploadAvatar } from '@/api/user'
-import { Document, Edit, User, SwitchButton, HomeFilled, ArrowDown, Key, Plus } from '@element-plus/icons-vue'
+import { Document, Edit, User, SwitchButton, HomeFilled, ArrowDown, Key, Plus, FolderOpened } from '@element-plus/icons-vue'
 import type { UpdateUserInfoDTO, UpdatePasswordDTO } from '@/types'
 
 const route = useRoute()
@@ -157,7 +157,10 @@ const activeMenu = computed(() => {
     return '/'
   }
   if (route.path.startsWith('/notes')) {
-    return '/notes'
+    return '/knowledge'
+  }
+  if (route.path.startsWith('/knowledge')) {
+    return '/knowledge'
   }
   return route.path
 })

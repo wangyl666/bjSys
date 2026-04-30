@@ -389,6 +389,17 @@ onMounted(async () => {
     fetchTags()
   ])
   
+  if (!isEdit.value) {
+    const selectedCategoryId = localStorage.getItem('selectedCategoryId')
+    if (selectedCategoryId) {
+      const categoryId = Number(selectedCategoryId)
+      if (categories.value.find(c => c.id === categoryId)) {
+        noteForm.categoryId = categoryId
+      }
+      localStorage.removeItem('selectedCategoryId')
+    }
+  }
+  
   nextTick(() => {
     initEditor()
     

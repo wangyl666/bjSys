@@ -41,6 +41,30 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
 
     @Override
     @Transactional(rollbackFor = Exception.class)
+    public CategoryVO updateCategory(Long id, String name, Long userId) {
+        Category category = getById(id);
+        if (category == null || !category.getUserId().equals(userId)) {
+            throw new RuntimeException("分类不存在或无权限操作");
+        }
+
+        Category exist = getOne(
+                new LambdaQueryWrapper<Category>()
+                        .eq(Category::getUserId, userId)
+                        .eq(Category::getName, name)
+                        .ne(Category::getId, id));
+        if (exist != null) {
+            throw new RuntimeException("分类名称已存在");
+        }
+
+        category.setName(name);
+        category.setUpdatedAt(LocalDateTime.now());
+        updateById(category);
+
+        return toVO(category);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
     public void deleteCategory(Long id, Long userId) {
         Category category = getById(id);
         if (category == null || !category.getUserId().equals(userId)) {
