@@ -3,6 +3,7 @@ export interface UserVO {
   username: string
   nickname: string
   avatar: string | null
+  role: string
   createdAt: string
 }
 
@@ -58,10 +59,25 @@ export interface NoteVO {
   content: string
   summary: string | null
   isPublic: number
+  approvalStatus: string
   viewCount: number
   tags: TagVO[]
   createdAt: string
   updatedAt: string
+}
+
+export interface NoteApprovalVO {
+  id: number
+  noteId: number
+  noteTitle: string
+  userId: number
+  username: string
+  approvalStatus: string
+  adminId: number | null
+  adminName: string | null
+  adminRemark: string | null
+  submittedAt: string
+  approvedAt: string | null
 }
 
 export interface NoteDTO {

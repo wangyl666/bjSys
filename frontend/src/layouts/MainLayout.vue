@@ -23,9 +23,17 @@
           <el-icon><Document /></el-icon>
           <span>我的笔记</span>
         </el-menu-item>
+        <el-menu-item index="/approvals">
+          <el-icon><Promotion /></el-icon>
+          <span>发布记录</span>
+        </el-menu-item>
         <el-menu-item index="/tags">
           <el-icon><PriceTag /></el-icon>
           <span>标签管理</span>
+        </el-menu-item>
+        <el-menu-item v-if="userInfo?.role === 'ADMIN'" index="/admin/approvals">
+          <el-icon><User /></el-icon>
+          <span>审批管理</span>
         </el-menu-item>
       </el-menu>
       
@@ -151,7 +159,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/store/user'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import { updateUserInfo, updatePassword, uploadAvatar } from '@/api/user'
-import { Document, Edit, User, SwitchButton, HomeFilled, ArrowDown, Key, Plus, FolderOpened, PriceTag } from '@element-plus/icons-vue'
+import { Document, Edit, User, SwitchButton, HomeFilled, ArrowDown, Key, Plus, FolderOpened, PriceTag, Promotion } from '@element-plus/icons-vue'
 import type { UpdateUserInfoDTO, UpdatePasswordDTO } from '@/types'
 
 const route = useRoute()
@@ -166,6 +174,12 @@ const activeMenu = computed(() => {
   }
   if (route.path.startsWith('/notes')) {
     return '/notes'
+  }
+  if (route.path.startsWith('/approvals')) {
+    return '/approvals'
+  }
+  if (route.path.startsWith('/admin/approvals')) {
+    return '/admin/approvals'
   }
   if (route.path.startsWith('/tags')) {
     return '/tags'

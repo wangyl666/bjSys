@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router'
 import { useUserStore } from '@/store/user'
+import { ElMessage } from 'element-plus'
 
 const routes: RouteRecordRaw[] = [
   {
@@ -60,6 +61,18 @@ const routes: RouteRecordRaw[] = [
         name: 'NoteDetail',
         component: () => import('@/views/notes/NoteDetail.vue'),
         meta: { title: '笔记详情', requiresAuth: true }
+      },
+      {
+        path: 'approvals',
+        name: 'ApprovalRecord',
+        component: () => import('@/views/notes/ApprovalRecord.vue'),
+        meta: { title: '发布记录', requiresAuth: true }
+      },
+      {
+        path: 'admin/approvals',
+        name: 'ApprovalManage',
+        component: () => import('@/views/admin/ApprovalManage.vue'),
+        meta: { title: '审批管理', requiresAuth: true, requiresAdmin: true }
       }
     ]
   }
@@ -81,12 +94,22 @@ router.beforeEach(async (to, _from, next) => {
   } else if (token && !userStore.isLoggedIn) {
     try {
       await userStore.fetchCurrentUser()
+      
+      if (to.meta.requiresAdmin && userStore.userInfo?.role !== 'ADMIN') {
+        ElMessage?.warning('无权限访问该页面')
+        next('/')
+        return
+      }
+      
       next()
     } catch (error) {
       localStorage.removeItem('token')
       next('/login')
     }
   } else if ((to.path === '/login' || to.path === '/register') && token) {
+    next('/')
+  } else if (to.meta.requiresAdmin && userStore.isLoggedIn && userStore.userInfo?.role !== 'ADMIN') {
+    ElMessage?.warning('无权限访问该页面')
     next('/')
   } else {
     next()

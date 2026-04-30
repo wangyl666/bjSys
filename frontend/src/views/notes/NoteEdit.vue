@@ -13,9 +13,21 @@
           <el-icon><Clock /></el-icon>
           有未保存的草稿
         </el-tag>
+        <el-tag v-if="approvalStatus && approvalStatus !== 'DRAFT'" :type="getApprovalTagType(approvalStatus)" effect="dark">
+          {{ getApprovalStatusText(approvalStatus) }}
+        </el-tag>
         <el-button type="primary" :loading="saving" @click="handleSave">
           <el-icon><Check /></el-icon>
           保存
+        </el-button>
+        <el-button 
+          v-if="isPublic && canSubmitApproval" 
+          type="success" 
+          :loading="submitting" 
+          @click="handleSubmitApproval"
+        >
+          <el-icon><Promotion /></el-icon>
+          发布
         </el-button>
       </div>
     </div>
@@ -120,7 +132,8 @@ import { getCategories, createCategory } from '@/api/category'
 import { getTags, createTag } from '@/api/tag'
 import { getDraft, saveDraft, deleteDraft } from '@/api/draft'
 import { uploadImage } from '@/api/file'
-import { ArrowLeft, Check, Clock } from '@element-plus/icons-vue'
+import { submitApproval } from '@/api/approval'
+import { ArrowLeft, Check, Clock, Promotion } from '@element-plus/icons-vue'
 import dayjs from 'dayjs'
 import type { NoteDTO, NoteVO, CategoryVO, TagVO, Draft, DraftDTO } from '@/types'
 
@@ -135,6 +148,7 @@ let vditor: Vditor | null = null
 
 const loading = ref(false)
 const saving = ref(false)
+const submitting = ref(false)
 const categories = ref<CategoryVO[]>([])
 const tags = ref<TagVO[]>([])
 const selectedTags = ref<number[]>([])
@@ -142,6 +156,11 @@ const hasDraft = ref(false)
 const draftData = ref<Draft | null>(null)
 const draftDialogVisible = ref(false)
 const isPublic = ref(false)
+const approvalStatus = ref('DRAFT')
+
+const canSubmitApproval = computed(() => {
+  return isEdit.value && (approvalStatus.value === 'DRAFT' || approvalStatus.value === 'REJECTED')
+})
 
 const noteForm = reactive<NoteDTO>({
   title: '',
@@ -325,6 +344,7 @@ const fetchNoteDetail = async () => {
     noteForm.categoryId = note.categoryId || undefined
     noteForm.isPublic = note.isPublic
     isPublic.value = note.isPublic === 1
+    approvalStatus.value = note.approvalStatus || 'DRAFT'
     
     if (note.tags && note.tags.length > 0) {
       selectedTags.value = note.tags.map(t => t.id)
@@ -379,6 +399,50 @@ const handleRestoreDraft = () => {
   
   draftDialogVisible.value = false
   ElMessage.success('草稿已恢复')
+}
+
+const getApprovalStatusText = (status: string) => {
+  const statusMap: Record<string, string> = {
+    DRAFT: '草稿',
+    PENDING: '待审批',
+    APPROVED: '已通过',
+    REJECTED: '已拒绝'
+  }
+  return statusMap[status] || status
+}
+
+const getApprovalTagType = (status: string) => {
+  const typeMap: Record<string, string> = {
+    DRAFT: 'info',
+    PENDING: 'warning',
+    APPROVED: 'success',
+    REJECTED: 'danger'
+  }
+  return typeMap[status] || 'info'
+}
+
+const handleSubmitApproval = async () => {
+  if (!noteId.value) {
+    ElMessage.warning('请先保存笔记后再发布')
+    return
+  }
+  
+  if (!noteForm.title.trim()) {
+    ElMessage.warning('请输入笔记标题')
+    return
+  }
+  
+  submitting.value = true
+  try {
+    await submitApproval(noteId.value)
+    ElMessage.success('提交审批成功，请等待审核')
+    approvalStatus.value = 'PENDING'
+  } catch (error: any) {
+    console.error('提交审批失败:', error)
+    ElMessage.error(error.message || '提交审批失败')
+  } finally {
+    submitting.value = false
+  }
 }
 
 const handleTagChange = (val: number[]) => {
