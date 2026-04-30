@@ -8,6 +8,10 @@
         </el-button>
       </div>
       <div class="header-right">
+        <el-button @click="handleCopy">
+          <el-icon><CopyDocument /></el-icon>
+          复制
+        </el-button>
         <el-button @click="handleEdit">
           <el-icon><Edit /></el-icon>
           编辑
@@ -68,8 +72,8 @@ import { ref, onMounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import Vditor from 'vditor'
-import { getNoteById, deleteNote } from '@/api/note'
-import { ArrowLeft, Edit, Delete, Folder, PriceTag, View, Clock, EditPen } from '@element-plus/icons-vue'
+import { getNoteById, deleteNote, copyNote } from '@/api/note'
+import { ArrowLeft, Edit, Delete, Folder, PriceTag, View, Clock, EditPen, CopyDocument } from '@element-plus/icons-vue'
 import dayjs from 'dayjs'
 import type { NoteVO } from '@/types'
 
@@ -130,6 +134,16 @@ const handleBack = () => {
 
 const handleEdit = () => {
   router.push(`/notes/${noteId.value}/edit`)
+}
+
+const handleCopy = async () => {
+  try {
+    const res = await copyNote(noteId.value)
+    ElMessage.success('复制成功')
+    router.push(`/notes/${res.data.id}/edit`)
+  } catch (error) {
+    console.error('复制笔记失败:', error)
+  }
 }
 
 const handleDelete = async () => {

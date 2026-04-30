@@ -8,8 +8,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.annotation.PostConstruct;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
@@ -20,15 +22,31 @@ import java.util.List;
 public class FileServiceImpl implements FileService {
 
     @Value("${file.upload.path}")
-    private String uploadPath;
+    private String uploadPathConfig;
 
     @Value("${file.upload.access-url}")
     private String accessUrl;
+
+    private String uploadPath;
 
     private static final List<String> ALLOWED_TYPES = Arrays.asList(
             "image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp",
             "image/bmp", "image/svg+xml"
     );
+
+    @PostConstruct
+    public void init() {
+        if (uploadPathConfig.startsWith("./") || uploadPathConfig.startsWith(".\\")) {
+            String userDir = System.getProperty("user.dir");
+            uploadPath = Paths.get(userDir, uploadPathConfig.replaceFirst("\\./", "").replaceFirst("\\.\\\\", "")).toString() + File.separator;
+        } else if (!new File(uploadPathConfig).isAbsolute()) {
+            String userDir = System.getProperty("user.dir");
+            uploadPath = Paths.get(userDir, uploadPathConfig).toString() + File.separator;
+        } else {
+            uploadPath = uploadPathConfig.endsWith(File.separator) ? uploadPathConfig : uploadPathConfig + File.separator;
+        }
+        log.info("文件上传路径: {}", uploadPath);
+    }
 
     @Override
     public String uploadFile(MultipartFile file, Long userId) {
@@ -51,7 +69,7 @@ public class FileServiceImpl implements FileService {
             String fileExt = FileUtil.extName(file.getOriginalFilename());
             String fileName = IdUtil.simpleUUID() + "." + (fileExt.isEmpty() ? "jpg" : fileExt);
             String relativePath = userId + "/" + datePath + "/" + fileName;
-            String fullPath = uploadPath + relativePath;
+            String fullPath = uploadPath + relativePath.replace("/", File.separator).replace("\\", File.separator);
 
             File destFile = new File(fullPath);
             if (!destFile.getParentFile().exists()) {
