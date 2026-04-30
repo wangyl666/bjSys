@@ -261,10 +261,7 @@ const initEditor = () => {
     }
   })
 
-  const editorElement = document.getElementById('vditor')
-  if (editorElement) {
-    editorElement.addEventListener('paste', handlePasteImage)
-  }
+  document.addEventListener('paste', handlePasteImage, true)
 }
 
 const debouncedSaveDraft = debounce(async () => {
@@ -282,8 +279,10 @@ const debouncedSaveDraft = debounce(async () => {
   try {
     await saveDraft(draftDTO)
     hasDraft.value = true
+    ElMessage.success('自动保存成功')
   } catch (error) {
     console.error('自动保存草稿失败:', error)
+    ElMessage.error('自动保存失败')
   }
 }, 3000)
 
@@ -479,10 +478,7 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
-  const editorElement = document.getElementById('vditor')
-  if (editorElement) {
-    editorElement.removeEventListener('paste', handlePasteImage)
-  }
+  document.removeEventListener('paste', handlePasteImage, true)
   if (vditor) {
     vditor.destroy()
     vditor = null
