@@ -247,6 +247,10 @@ const initEditor = () => {
       }
     },
     tab: '\t',
+    input: (val: string) => {
+      noteForm.content = val
+      debouncedSaveDraft()
+    },
     after: () => {
       isEditorReady.value = true
       if (noteForm.content) {
@@ -254,9 +258,6 @@ const initEditor = () => {
       } else if (pendingContent.value) {
         vditor?.setValue(pendingContent.value)
         pendingContent.value = ''
-      }
-      if (vditor) {
-        vditor.vditor.afterInput = handleContentChange
       }
     }
   })
@@ -285,13 +286,6 @@ const debouncedSaveDraft = debounce(async () => {
     ElMessage.error('自动保存失败')
   }
 }, 3000)
-
-const handleContentChange = () => {
-  if (vditor) {
-    noteForm.content = vditor.getValue()
-    debouncedSaveDraft()
-  }
-}
 
 const fetchCategories = async () => {
   try {
