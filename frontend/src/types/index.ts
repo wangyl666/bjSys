@@ -6,6 +6,23 @@ export interface UserVO {
   createdAt: string
 }
 
+export interface UserStatsVO {
+  noteCount: number
+  errorQuestionCount: number
+  categoryCount: number
+  tagCount: number
+}
+
+export interface UpdateUserInfoDTO {
+  nickname?: string
+  avatar?: string
+}
+
+export interface UpdatePasswordDTO {
+  oldPassword: string
+  newPassword: string
+}
+
 export interface LoginDTO {
   username: string
   password: string
@@ -23,6 +40,7 @@ export interface CategoryVO {
   sort: number
   createdAt: string
   updatedAt: string
+  noteCount: number
 }
 
 export interface TagVO {
@@ -70,6 +88,7 @@ export interface Draft {
   title: string | null
   content: string | null
   categoryId: number | null
+  tagIds: number[] | null
   savedAt: string
 }
 

@@ -3,6 +3,7 @@ package com.wyl.note.entity;
 import lombok.Data;
 import java.io.Serializable;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 public class Draft implements Serializable {
@@ -18,6 +19,8 @@ public class Draft implements Serializable {
     private String content;
 
     private Long categoryId;
+
+    private List<Long> tagIds;
 
     private LocalDateTime savedAt;
 }

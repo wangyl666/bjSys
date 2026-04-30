@@ -33,6 +33,7 @@ public class DraftServiceImpl implements DraftService {
             draft.setTitle(draftDTO.getTitle());
             draft.setContent(draftDTO.getContent());
             draft.setCategoryId(draftDTO.getCategoryId());
+            draft.setTagIds(draftDTO.getTagIds());
             draft.setSavedAt(LocalDateTime.now());
 
             String key = getDraftKey(userId, draftDTO.getNoteId());
