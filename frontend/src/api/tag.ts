@@ -1,5 +1,5 @@
 import request, { type Result } from '@/utils/request'
-import type { TagVO } from '@/types'
+import type { TagVO, TagGraphVO } from '@/types'
 
 export function getTags(): Promise<Result<TagVO[]>> {
   return request({
@@ -20,5 +20,12 @@ export function deleteTag(id: number): Promise<Result<void>> {
   return request({
     url: `/tags/${id}`,
     method: 'delete'
+  })
+}
+
+export function getTagGraph(): Promise<Result<TagGraphVO>> {
+  return request({
+    url: '/tags/graph',
+    method: 'get'
   })
 }

@@ -50,6 +50,25 @@ export interface TagVO {
   color: string
 }
 
+export interface GraphNodeVO {
+  id: number
+  name: string
+  color: string
+  noteCount: number
+  category: number
+}
+
+export interface GraphEdgeVO {
+  source: number
+  target: number
+  value: number
+}
+
+export interface TagGraphVO {
+  nodes: GraphNodeVO[]
+  edges: GraphEdgeVO[]
+}
+
 export interface NoteVO {
   id: number
   userId: number

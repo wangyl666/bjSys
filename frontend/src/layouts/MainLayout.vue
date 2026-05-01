@@ -19,6 +19,10 @@
           <el-icon><FolderOpened /></el-icon>
           <span>知识库</span>
         </el-menu-item>
+        <el-menu-item index="/graph">
+          <el-icon><Share /></el-icon>
+          <span>智慧图谱</span>
+        </el-menu-item>
         <el-menu-item index="/community">
           <el-icon><OfficeBuilding /></el-icon>
           <span>笔记社区</span>
@@ -163,7 +167,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/store/user'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import { updateUserInfo, updatePassword, uploadAvatar } from '@/api/user'
-import { Document, Edit, User, SwitchButton, HomeFilled, ArrowDown, Key, Plus, FolderOpened, PriceTag, Promotion, OfficeBuilding } from '@element-plus/icons-vue'
+import { Document, Edit, User, SwitchButton, HomeFilled, ArrowDown, Key, Plus, FolderOpened, PriceTag, Promotion, OfficeBuilding, Share } from '@element-plus/icons-vue'
 import type { UpdateUserInfoDTO, UpdatePasswordDTO } from '@/types'
 
 const route = useRoute()
@@ -193,6 +197,9 @@ const activeMenu = computed(() => {
   }
   if (route.path.startsWith('/knowledge')) {
     return '/knowledge'
+  }
+  if (route.path.startsWith('/graph')) {
+    return '/graph'
   }
   return route.path
 })

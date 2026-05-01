@@ -33,6 +33,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '知识库', requiresAuth: true }
       },
       {
+        path: 'graph',
+        name: 'TagGraph',
+        component: () => import('@/views/knowledge/TagGraph.vue'),
+        meta: { title: '智慧图谱', requiresAuth: true }
+      },
+      {
         path: 'notes',
         name: 'NoteList',
         component: () => import('@/views/notes/NoteList.vue'),
