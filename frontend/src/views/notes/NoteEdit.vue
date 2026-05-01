@@ -13,9 +13,21 @@
           <el-icon><Clock /></el-icon>
           有未保存的草稿
         </el-tag>
+        <el-tag v-if="approvalStatus && approvalStatus !== 'DRAFT'" :type="getApprovalTagType(approvalStatus)" effect="dark">
+          {{ getApprovalStatusText(approvalStatus) }}
+        </el-tag>
         <el-button type="primary" :loading="saving" @click="handleSave">
           <el-icon><Check /></el-icon>
           保存
+        </el-button>
+        <el-button 
+          v-if="isPublic && canSubmitApproval" 
+          type="success" 
+          :loading="submitting" 
+          @click="handleSubmitApproval"
+        >
+          <el-icon><Promotion /></el-icon>
+          发布
         </el-button>
       </div>
     </div>
@@ -120,7 +132,8 @@ import { getCategories, createCategory } from '@/api/category'
 import { getTags, createTag } from '@/api/tag'
 import { getDraft, saveDraft, deleteDraft } from '@/api/draft'
 import { uploadImage } from '@/api/file'
-import { ArrowLeft, Check, Clock } from '@element-plus/icons-vue'
+import { submitApproval } from '@/api/approval'
+import { ArrowLeft, Check, Clock, Promotion } from '@element-plus/icons-vue'
 import dayjs from 'dayjs'
 import type { NoteDTO, NoteVO, CategoryVO, TagVO, Draft, DraftDTO } from '@/types'
 
@@ -135,6 +148,7 @@ let vditor: Vditor | null = null
 
 const loading = ref(false)
 const saving = ref(false)
+const submitting = ref(false)
 const categories = ref<CategoryVO[]>([])
 const tags = ref<TagVO[]>([])
 const selectedTags = ref<number[]>([])
@@ -142,6 +156,11 @@ const hasDraft = ref(false)
 const draftData = ref<Draft | null>(null)
 const draftDialogVisible = ref(false)
 const isPublic = ref(false)
+const approvalStatus = ref('DRAFT')
+
+const canSubmitApproval = computed(() => {
+  return isEdit.value && (approvalStatus.value === 'DRAFT' || approvalStatus.value === 'REJECTED')
+})
 
 const noteForm = reactive<NoteDTO>({
   title: '',
@@ -151,8 +170,47 @@ const noteForm = reactive<NoteDTO>({
   isPublic: 0
 })
 
+const isEditorReady = ref(false)
+const pendingContent = ref('')
+
 const formatTime = (time: string) => {
   return dayjs(time).format('YYYY-MM-DD HH:mm:ss')
+}
+
+const handlePasteImage = (e: ClipboardEvent) => {
+  const items = e.clipboardData?.items
+  if (!items) return
+
+  let hasImage = false
+  let imageFile: File | null = null
+
+  for (const item of items) {
+    if (item.type.indexOf('image') !== -1) {
+      hasImage = true
+      imageFile = item.getAsFile()
+      break
+    }
+  }
+
+  if (hasImage && imageFile) {
+    e.preventDefault()
+    e.stopPropagation()
+    e.stopImmediatePropagation()
+
+    ;(async () => {
+      try {
+        const res = await uploadImage(imageFile!)
+        if (vditor && res.data.url) {
+          const markdown = `![${imageFile!.name}](${res.data.url})`
+          vditor.insertValue(markdown)
+          ElMessage.success('图片粘贴成功')
+        }
+      } catch (error) {
+        console.error('粘贴图片上传失败:', error)
+        ElMessage.error('图片粘贴失败，请重试')
+      }
+    })()
+  }
 }
 
 const initEditor = () => {
@@ -183,6 +241,12 @@ const initEditor = () => {
       'undo', 'redo', '|',
       'fullscreen', 'preview', 'info'
     ],
+    toolbarConfig: {
+      table: {
+        maxRow: 20,
+        maxCol: 10
+      }
+    },
     cache: {
       enable: false
     },
@@ -191,22 +255,48 @@ const initEditor = () => {
       multiple: false,
       handler: async (files: File[]) => {
         if (!files || files.length === 0) return
+        const file = files[0]
         try {
-          const res = await uploadImage(files[0])
-          if (vditor) {
-            vditor.insertValue(`![${files[0].name}](${res.data.url})`)
+          const res = await uploadImage(file)
+          return {
+            errFiles: [],
+            succMap: {
+              [file.name]: res.data.url
+            }
           }
         } catch (error) {
           ElMessage.error('图片上传失败')
+          return {
+            errFiles: [file.name],
+            succMap: {}
+          }
         }
       }
     },
+    paste: {
+      enable: true,
+      style: true,
+      handler: async (text: string, html?: string) => {
+        return text
+      }
+    },
+    tab: '\t',
+    input: (val: string) => {
+      noteForm.content = val
+      debouncedSaveDraft()
+    },
     after: () => {
+      isEditorReady.value = true
       if (noteForm.content) {
         vditor?.setValue(noteForm.content)
+      } else if (pendingContent.value) {
+        vditor?.setValue(pendingContent.value)
+        pendingContent.value = ''
       }
     }
   })
+
+  document.addEventListener('paste', handlePasteImage, true)
 }
 
 const debouncedSaveDraft = debounce(async () => {
@@ -217,23 +307,19 @@ const debouncedSaveDraft = debounce(async () => {
     noteId: noteId.value,
     title: noteForm.title,
     content: content,
-    categoryId: noteForm.categoryId
+    categoryId: noteForm.categoryId,
+    tagIds: selectedTags.value
   }
   
   try {
     await saveDraft(draftDTO)
     hasDraft.value = true
+    ElMessage.success('自动保存成功')
   } catch (error) {
     console.error('自动保存草稿失败:', error)
+    ElMessage.error('自动保存失败')
   }
 }, 3000)
-
-const handleContentChange = () => {
-  if (vditor) {
-    noteForm.content = vditor.getValue()
-    debouncedSaveDraft()
-  }
-}
 
 const fetchCategories = async () => {
   try {
@@ -264,13 +350,17 @@ const fetchNoteDetail = async () => {
     noteForm.categoryId = note.categoryId || undefined
     noteForm.isPublic = note.isPublic
     isPublic.value = note.isPublic === 1
+    approvalStatus.value = note.approvalStatus || 'DRAFT'
     
     if (note.tags && note.tags.length > 0) {
       selectedTags.value = note.tags.map(t => t.id)
+      noteForm.tagIds = note.tags.map(t => t.id)
     }
     
-    if (vditor && note.content) {
+    if (isEditorReady.value && vditor && note.content) {
       vditor.setValue(note.content)
+    } else if (note.content) {
+      pendingContent.value = note.content
     }
   } catch (error) {
     console.error('获取笔记详情失败:', error)
@@ -304,12 +394,61 @@ const handleRestoreDraft = () => {
   noteForm.content = draftData.value.content || ''
   noteForm.categoryId = draftData.value.categoryId || undefined
   
+  if (draftData.value.tagIds && draftData.value.tagIds.length > 0) {
+    selectedTags.value = draftData.value.tagIds
+    noteForm.tagIds = draftData.value.tagIds
+  }
+  
   if (vditor && draftData.value.content) {
     vditor.setValue(draftData.value.content)
   }
   
   draftDialogVisible.value = false
   ElMessage.success('草稿已恢复')
+}
+
+const getApprovalStatusText = (status: string) => {
+  const statusMap: Record<string, string> = {
+    DRAFT: '草稿',
+    PENDING: '待审批',
+    APPROVED: '已通过',
+    REJECTED: '已拒绝'
+  }
+  return statusMap[status] || status
+}
+
+const getApprovalTagType = (status: string) => {
+  const typeMap: Record<string, string> = {
+    DRAFT: 'info',
+    PENDING: 'warning',
+    APPROVED: 'success',
+    REJECTED: 'danger'
+  }
+  return typeMap[status] || 'info'
+}
+
+const handleSubmitApproval = async () => {
+  if (!noteId.value) {
+    ElMessage.warning('请先保存笔记后再发布')
+    return
+  }
+  
+  if (!noteForm.title.trim()) {
+    ElMessage.warning('请输入笔记标题')
+    return
+  }
+  
+  submitting.value = true
+  try {
+    await submitApproval(noteId.value)
+    ElMessage.success('提交审批成功，请等待审核')
+    approvalStatus.value = 'PENDING'
+  } catch (error: any) {
+    console.error('提交审批失败:', error)
+    ElMessage.error(error.message || '提交审批失败')
+  } finally {
+    submitting.value = false
+  }
 }
 
 const handleTagChange = (val: number[]) => {
@@ -389,12 +528,19 @@ onMounted(async () => {
     fetchTags()
   ])
   
+  if (!isEdit.value) {
+    const selectedCategoryId = localStorage.getItem('selectedCategoryId')
+    if (selectedCategoryId) {
+      const categoryId = Number(selectedCategoryId)
+      if (categories.value.find(c => c.id === categoryId)) {
+        noteForm.categoryId = categoryId
+      }
+      localStorage.removeItem('selectedCategoryId')
+    }
+  }
+  
   nextTick(() => {
     initEditor()
-    
-    if (vditor) {
-      vditor.vditor.afterInput = handleContentChange
-    }
   })
   
   if (isEdit.value) {
@@ -405,6 +551,7 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
+  document.removeEventListener('paste', handlePasteImage, true)
   if (vditor) {
     vditor.destroy()
     vditor = null

@@ -23,6 +23,8 @@ public class Note {
 
     private Integer isPublic;
 
+    private String approvalStatus;
+
     private Integer viewCount;
 
     @TableField(fill = FieldFill.INSERT)

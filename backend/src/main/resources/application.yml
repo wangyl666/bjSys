@@ -41,4 +41,4 @@ jwt:
 file:
   upload:
     path: ./uploads/
-    access-url: http://localhost:8080/api/files/
+    access-url: /api/files/
