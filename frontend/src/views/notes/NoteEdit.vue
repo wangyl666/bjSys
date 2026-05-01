@@ -96,8 +96,14 @@
         </el-form>
       </div>
       
-      <div class="editor-wrapper" ref="editorRef">
-        <div id="vditor" class="vditor-container"></div>
+      <div class="editor-wrapper">
+        <TiptapEditor
+          v-model="noteForm.content"
+          @change="handleContentChange"
+          placeholder="开始编写您的笔记..."
+          class="editor-container"
+          ref="editorRef"
+        />
       </div>
     </div>
     
@@ -122,16 +128,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { ref, reactive, computed, onMounted, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import Vditor from 'vditor'
 import debounce from 'lodash-es/debounce'
+import TiptapEditor from '@/components/TiptapEditor.vue'
 import { createNote, updateNote, getNoteById } from '@/api/note'
-import { getCategories, createCategory } from '@/api/category'
+import { getCategories } from '@/api/category'
 import { getTags, createTag } from '@/api/tag'
 import { getDraft, saveDraft, deleteDraft } from '@/api/draft'
-import { uploadImage } from '@/api/file'
 import { submitApproval } from '@/api/approval'
 import { ArrowLeft, Check, Clock, Promotion } from '@element-plus/icons-vue'
 import dayjs from 'dayjs'
@@ -143,8 +148,7 @@ const router = useRouter()
 const isEdit = computed(() => !!route.params.id)
 const noteId = computed(() => route.params.id ? Number(route.params.id) : undefined)
 
-const editorRef = ref<HTMLElement>()
-let vditor: Vditor | null = null
+const editorRef = ref<InstanceType<typeof TiptapEditor>>()
 
 const loading = ref(false)
 const saving = ref(false)
@@ -170,143 +174,15 @@ const noteForm = reactive<NoteDTO>({
   isPublic: 0
 })
 
-const isEditorReady = ref(false)
-const pendingContent = ref('')
-
 const formatTime = (time: string) => {
   return dayjs(time).format('YYYY-MM-DD HH:mm:ss')
 }
 
-const handlePasteImage = (e: ClipboardEvent) => {
-  const items = e.clipboardData?.items
-  if (!items) return
-
-  let hasImage = false
-  let imageFile: File | null = null
-
-  for (const item of items) {
-    if (item.type.indexOf('image') !== -1) {
-      hasImage = true
-      imageFile = item.getAsFile()
-      break
-    }
-  }
-
-  if (hasImage && imageFile) {
-    e.preventDefault()
-    e.stopPropagation()
-    e.stopImmediatePropagation()
-
-    ;(async () => {
-      try {
-        const res = await uploadImage(imageFile!)
-        if (vditor && res.data.url) {
-          const markdown = `![${imageFile!.name}](${res.data.url})`
-          vditor.insertValue(markdown)
-          ElMessage.success('图片粘贴成功')
-        }
-      } catch (error) {
-        console.error('粘贴图片上传失败:', error)
-        ElMessage.error('图片粘贴失败，请重试')
-      }
-    })()
-  }
-}
-
-const initEditor = () => {
-  if (!editorRef.value) return
-  
-  vditor = new Vditor('vditor', {
-    height: '100%',
-    placeholder: '开始编写您的笔记...',
-    theme: 'light',
-    mode: 'wysiwyg',
-    preview: {
-      hljs: {
-        enable: true,
-        style: 'github',
-        lineNumber: true
-      },
-      markdown: {
-        toc: true,
-        mark: true,
-        footnotes: true
-      }
-    },
-    toolbar: [
-      'headings', 'bold', 'italic', 'strike', '|',
-      'list', 'ordered-list', 'check', 'outdent', 'indent', '|',
-      'quote', 'line', 'code', 'inline-code', '|',
-      'link', 'image', 'table', '|',
-      'undo', 'redo', '|',
-      'fullscreen', 'preview', 'info'
-    ],
-    toolbarConfig: {
-      table: {
-        maxRow: 20,
-        maxCol: 10
-      }
-    },
-    cache: {
-      enable: false
-    },
-    upload: {
-      accept: 'image/*',
-      multiple: false,
-      handler: async (files: File[]) => {
-        if (!files || files.length === 0) return
-        const file = files[0]
-        try {
-          const res = await uploadImage(file)
-          return {
-            errFiles: [],
-            succMap: {
-              [file.name]: res.data.url
-            }
-          }
-        } catch (error) {
-          ElMessage.error('图片上传失败')
-          return {
-            errFiles: [file.name],
-            succMap: {}
-          }
-        }
-      }
-    },
-    paste: {
-      enable: true,
-      style: true,
-      handler: async (text: string, html?: string) => {
-        return text
-      }
-    },
-    tab: '\t',
-    input: (val: string) => {
-      noteForm.content = val
-      debouncedSaveDraft()
-    },
-    after: () => {
-      isEditorReady.value = true
-      if (noteForm.content) {
-        vditor?.setValue(noteForm.content)
-      } else if (pendingContent.value) {
-        vditor?.setValue(pendingContent.value)
-        pendingContent.value = ''
-      }
-    }
-  })
-
-  document.addEventListener('paste', handlePasteImage, true)
-}
-
 const debouncedSaveDraft = debounce(async () => {
-  if (!vditor) return
-  
-  const content = vditor.getValue()
   const draftDTO: DraftDTO = {
     noteId: noteId.value,
     title: noteForm.title,
-    content: content,
+    content: noteForm.content,
     categoryId: noteForm.categoryId,
     tagIds: selectedTags.value
   }
@@ -320,6 +196,10 @@ const debouncedSaveDraft = debounce(async () => {
     ElMessage.error('自动保存失败')
   }
 }, 3000)
+
+const handleContentChange = () => {
+  debouncedSaveDraft()
+}
 
 const fetchCategories = async () => {
   try {
@@ -357,11 +237,11 @@ const fetchNoteDetail = async () => {
       noteForm.tagIds = note.tags.map(t => t.id)
     }
     
-    if (isEditorReady.value && vditor && note.content) {
-      vditor.setValue(note.content)
-    } else if (note.content) {
-      pendingContent.value = note.content
-    }
+    nextTick(() => {
+      if (editorRef.value && note.content) {
+        editorRef.value.setValue(note.content)
+      }
+    })
   } catch (error) {
     console.error('获取笔记详情失败:', error)
     ElMessage.error('获取笔记详情失败')
@@ -399,9 +279,11 @@ const handleRestoreDraft = () => {
     noteForm.tagIds = draftData.value.tagIds
   }
   
-  if (vditor && draftData.value.content) {
-    vditor.setValue(draftData.value.content)
-  }
+  nextTick(() => {
+    if (editorRef.value && draftData.value?.content) {
+      editorRef.value.setValue(draftData.value.content)
+    }
+  })
   
   draftDialogVisible.value = false
   ElMessage.success('草稿已恢复')
@@ -475,10 +357,6 @@ const handleSave = async () => {
   noteForm.tagIds = selectedTags.value
   noteForm.isPublic = isPublic.value ? 1 : 0
   
-  if (vditor) {
-    noteForm.content = vditor.getValue()
-  }
-  
   saving.value = true
   try {
     let res
@@ -539,24 +417,11 @@ onMounted(async () => {
     }
   }
   
-  nextTick(() => {
-    initEditor()
-  })
-  
   if (isEdit.value) {
     await fetchNoteDetail()
   }
   
   await checkDraft()
-})
-
-onUnmounted(() => {
-  document.removeEventListener('paste', handlePasteImage, true)
-  if (vditor) {
-    vditor.destroy()
-    vditor = null
-  }
-  debouncedSaveDraft.cancel()
 })
 </script>
 
@@ -617,18 +482,12 @@ onUnmounted(() => {
   flex: 1;
   min-height: 0;
   position: relative;
+  padding: 0;
 }
 
-.vditor-container {
-  height: 100% !important;
-}
-
-:deep(.vditor-toolbar) {
-  border-top: none;
-}
-
-:deep(.vditor-content) {
-  height: calc(100% - 52px) !important;
+.editor-container {
+  width: 100%;
+  height: 100%;
 }
 
 .draft-dialog-content {
