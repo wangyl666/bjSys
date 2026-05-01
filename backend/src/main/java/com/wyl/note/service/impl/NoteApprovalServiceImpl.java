@@ -11,6 +11,7 @@ import com.wyl.note.service.NoteApprovalService;
 import com.wyl.note.service.NoteService;
 import com.wyl.note.service.UserService;
 import com.wyl.note.vo.NoteApprovalVO;
+import com.wyl.note.vo.NoteVO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;

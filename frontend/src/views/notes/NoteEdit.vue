@@ -220,8 +220,8 @@ const initEditor = () => {
     height: '100%',
     placeholder: '开始编写您的笔记...',
     theme: 'light',
+    mode: 'wysiwyg',
     preview: {
-      mode: 'both',
       hljs: {
         enable: true,
         style: 'github',

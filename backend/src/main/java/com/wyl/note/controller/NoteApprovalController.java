@@ -7,6 +7,7 @@ import com.wyl.note.dto.SubmitApprovalDTO;
 import com.wyl.note.security.UserDetailsImpl;
 import com.wyl.note.service.NoteApprovalService;
 import com.wyl.note.vo.NoteApprovalVO;
+import com.wyl.note.vo.NoteVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -85,7 +86,7 @@ public class NoteApprovalController {
     @GetMapping("/view-note/{approvalId}")
     @PreAuthorize("hasRole('ADMIN')")
     public Result<NoteVO> viewApprovalNote(@PathVariable Long approvalId,
-                                             @AuthenticationPrincipal UserDetailsImpl userDetails) {
+                                           @AuthenticationPrincipal UserDetailsImpl userDetails) {
         NoteVO noteVO = noteApprovalService.viewApprovalNote(approvalId, userDetails.getId());
         return Result.success(noteVO);
     }
