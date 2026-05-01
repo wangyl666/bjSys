@@ -13,9 +13,21 @@
           <el-icon><Clock /></el-icon>
           有未保存的草稿
         </el-tag>
+        <el-tag v-if="approvalStatus && approvalStatus !== 'DRAFT'" :type="getApprovalTagType(approvalStatus)" effect="dark">
+          {{ getApprovalStatusText(approvalStatus) }}
+        </el-tag>
         <el-button type="primary" :loading="saving" @click="handleSave">
           <el-icon><Check /></el-icon>
           保存
+        </el-button>
+        <el-button 
+          v-if="isPublic && canSubmitApproval" 
+          type="success" 
+          :loading="submitting" 
+          @click="handleSubmitApproval"
+        >
+          <el-icon><Promotion /></el-icon>
+          发布
         </el-button>
       </div>
     </div>
@@ -84,8 +96,14 @@
         </el-form>
       </div>
       
-      <div class="editor-wrapper" ref="editorRef">
-        <div id="vditor" class="vditor-container"></div>
+      <div class="editor-wrapper">
+        <TiptapEditor
+          v-model="noteForm.content"
+          @change="handleContentChange"
+          placeholder="开始编写您的笔记..."
+          class="editor-container"
+          ref="editorRef"
+        />
       </div>
     </div>
     
@@ -110,17 +128,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { ref, reactive, computed, onMounted, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import Vditor from 'vditor'
 import debounce from 'lodash-es/debounce'
+import TiptapEditor from '@/components/TiptapEditor.vue'
 import { createNote, updateNote, getNoteById } from '@/api/note'
-import { getCategories, createCategory } from '@/api/category'
+import { getCategories } from '@/api/category'
 import { getTags, createTag } from '@/api/tag'
 import { getDraft, saveDraft, deleteDraft } from '@/api/draft'
-import { uploadImage } from '@/api/file'
-import { ArrowLeft, Check, Clock } from '@element-plus/icons-vue'
+import { submitApproval } from '@/api/approval'
+import { ArrowLeft, Check, Clock, Promotion } from '@element-plus/icons-vue'
 import dayjs from 'dayjs'
 import type { NoteDTO, NoteVO, CategoryVO, TagVO, Draft, DraftDTO } from '@/types'
 
@@ -130,11 +148,11 @@ const router = useRouter()
 const isEdit = computed(() => !!route.params.id)
 const noteId = computed(() => route.params.id ? Number(route.params.id) : undefined)
 
-const editorRef = ref<HTMLElement>()
-let vditor: Vditor | null = null
+const editorRef = ref<InstanceType<typeof TiptapEditor>>()
 
 const loading = ref(false)
 const saving = ref(false)
+const submitting = ref(false)
 const categories = ref<CategoryVO[]>([])
 const tags = ref<TagVO[]>([])
 const selectedTags = ref<number[]>([])
@@ -142,6 +160,11 @@ const hasDraft = ref(false)
 const draftData = ref<Draft | null>(null)
 const draftDialogVisible = ref(false)
 const isPublic = ref(false)
+const approvalStatus = ref('DRAFT')
+
+const canSubmitApproval = computed(() => {
+  return isEdit.value && (approvalStatus.value === 'DRAFT' || approvalStatus.value === 'REJECTED')
+})
 
 const noteForm = reactive<NoteDTO>({
   title: '',
@@ -155,84 +178,27 @@ const formatTime = (time: string) => {
   return dayjs(time).format('YYYY-MM-DD HH:mm:ss')
 }
 
-const initEditor = () => {
-  if (!editorRef.value) return
-  
-  vditor = new Vditor('vditor', {
-    height: '100%',
-    placeholder: '开始编写您的笔记...',
-    theme: 'light',
-    preview: {
-      mode: 'both',
-      hljs: {
-        enable: true,
-        style: 'github',
-        lineNumber: true
-      },
-      markdown: {
-        toc: true,
-        mark: true,
-        footnotes: true
-      }
-    },
-    toolbar: [
-      'headings', 'bold', 'italic', 'strike', '|',
-      'list', 'ordered-list', 'check', 'outdent', 'indent', '|',
-      'quote', 'line', 'code', 'inline-code', '|',
-      'link', 'image', 'table', '|',
-      'undo', 'redo', '|',
-      'fullscreen', 'preview', 'info'
-    ],
-    cache: {
-      enable: false
-    },
-    upload: {
-      accept: 'image/*',
-      multiple: false,
-      handler: async (files: File[]) => {
-        if (!files || files.length === 0) return
-        try {
-          const res = await uploadImage(files[0])
-          if (vditor) {
-            vditor.insertValue(`![${files[0].name}](${res.data.url})`)
-          }
-        } catch (error) {
-          ElMessage.error('图片上传失败')
-        }
-      }
-    },
-    after: () => {
-      if (noteForm.content) {
-        vditor?.setValue(noteForm.content)
-      }
-    }
-  })
-}
-
 const debouncedSaveDraft = debounce(async () => {
-  if (!vditor) return
-  
-  const content = vditor.getValue()
   const draftDTO: DraftDTO = {
     noteId: noteId.value,
     title: noteForm.title,
-    content: content,
-    categoryId: noteForm.categoryId
+    content: noteForm.content,
+    categoryId: noteForm.categoryId,
+    tagIds: selectedTags.value
   }
   
   try {
     await saveDraft(draftDTO)
     hasDraft.value = true
+    ElMessage.success('自动保存成功')
   } catch (error) {
     console.error('自动保存草稿失败:', error)
+    ElMessage.error('自动保存失败')
   }
 }, 3000)
 
 const handleContentChange = () => {
-  if (vditor) {
-    noteForm.content = vditor.getValue()
-    debouncedSaveDraft()
-  }
+  debouncedSaveDraft()
 }
 
 const fetchCategories = async () => {
@@ -264,14 +230,18 @@ const fetchNoteDetail = async () => {
     noteForm.categoryId = note.categoryId || undefined
     noteForm.isPublic = note.isPublic
     isPublic.value = note.isPublic === 1
+    approvalStatus.value = note.approvalStatus || 'DRAFT'
     
     if (note.tags && note.tags.length > 0) {
       selectedTags.value = note.tags.map(t => t.id)
+      noteForm.tagIds = note.tags.map(t => t.id)
     }
     
-    if (vditor && note.content) {
-      vditor.setValue(note.content)
-    }
+    nextTick(() => {
+      if (editorRef.value && note.content) {
+        editorRef.value.setValue(note.content)
+      }
+    })
   } catch (error) {
     console.error('获取笔记详情失败:', error)
     ElMessage.error('获取笔记详情失败')
@@ -304,12 +274,63 @@ const handleRestoreDraft = () => {
   noteForm.content = draftData.value.content || ''
   noteForm.categoryId = draftData.value.categoryId || undefined
   
-  if (vditor && draftData.value.content) {
-    vditor.setValue(draftData.value.content)
+  if (draftData.value.tagIds && draftData.value.tagIds.length > 0) {
+    selectedTags.value = draftData.value.tagIds
+    noteForm.tagIds = draftData.value.tagIds
   }
+  
+  nextTick(() => {
+    if (editorRef.value && draftData.value?.content) {
+      editorRef.value.setValue(draftData.value.content)
+    }
+  })
   
   draftDialogVisible.value = false
   ElMessage.success('草稿已恢复')
+}
+
+const getApprovalStatusText = (status: string) => {
+  const statusMap: Record<string, string> = {
+    DRAFT: '草稿',
+    PENDING: '待审批',
+    APPROVED: '已通过',
+    REJECTED: '已拒绝'
+  }
+  return statusMap[status] || status
+}
+
+const getApprovalTagType = (status: string) => {
+  const typeMap: Record<string, string> = {
+    DRAFT: 'info',
+    PENDING: 'warning',
+    APPROVED: 'success',
+    REJECTED: 'danger'
+  }
+  return typeMap[status] || 'info'
+}
+
+const handleSubmitApproval = async () => {
+  if (!noteId.value) {
+    ElMessage.warning('请先保存笔记后再发布')
+    return
+  }
+  
+  if (!noteForm.title.trim()) {
+    ElMessage.warning('请输入笔记标题')
+    return
+  }
+  
+  submitting.value = true
+  try {
+    await submitApproval(noteId.value)
+    ElMessage.success('提交审批成功，请等待审核')
+    approvalStatus.value = 'PENDING'
+  } catch (error: any) {
+    console.error('提交审批失败:', error)
+    ElMessage.error(error.message || '提交审批失败')
+  } finally {
+    submitting.value = false
+  }
 }
 
 const handleTagChange = (val: number[]) => {
@@ -335,10 +356,6 @@ const handleSave = async () => {
   
   noteForm.tagIds = selectedTags.value
   noteForm.isPublic = isPublic.value ? 1 : 0
-  
-  if (vditor) {
-    noteForm.content = vditor.getValue()
-  }
   
   saving.value = true
   try {
@@ -389,27 +406,22 @@ onMounted(async () => {
     fetchTags()
   ])
   
-  nextTick(() => {
-    initEditor()
-    
-    if (vditor) {
-      vditor.vditor.afterInput = handleContentChange
+  if (!isEdit.value) {
+    const selectedCategoryId = localStorage.getItem('selectedCategoryId')
+    if (selectedCategoryId) {
+      const categoryId = Number(selectedCategoryId)
+      if (categories.value.find(c => c.id === categoryId)) {
+        noteForm.categoryId = categoryId
+      }
+      localStorage.removeItem('selectedCategoryId')
     }
-  })
+  }
   
   if (isEdit.value) {
     await fetchNoteDetail()
   }
   
   await checkDraft()
-})
-
-onUnmounted(() => {
-  if (vditor) {
-    vditor.destroy()
-    vditor = null
-  }
-  debouncedSaveDraft.cancel()
 })
 </script>
 
@@ -470,18 +482,12 @@ onUnmounted(() => {
   flex: 1;
   min-height: 0;
   position: relative;
+  padding: 0;
 }
 
-.vditor-container {
-  height: 100% !important;
-}
-
-:deep(.vditor-toolbar) {
-  border-top: none;
-}
-
-:deep(.vditor-content) {
-  height: calc(100% - 52px) !important;
+.editor-container {
+  width: 100%;
+  height: 100%;
 }
 
 .draft-dialog-content {
