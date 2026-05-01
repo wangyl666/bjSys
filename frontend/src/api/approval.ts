@@ -46,3 +46,10 @@ export function viewApproval(approvalId: number): Promise<Result<NoteApprovalVO>
     method: 'post'
   })
 }
+
+export function viewApprovalNote(approvalId: number): Promise<Result<NoteVO>> {
+  return request({
+    url: `/approvals/view-note/${approvalId}`,
+    method: 'get'
+  })
+}

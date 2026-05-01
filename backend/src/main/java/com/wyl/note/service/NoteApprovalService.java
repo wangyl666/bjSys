@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.wyl.note.entity.NoteApproval;
 import com.wyl.note.vo.NoteApprovalVO;
+import com.wyl.note.vo.NoteVO;
 
 public interface NoteApprovalService extends IService<NoteApproval> {
 
@@ -18,4 +19,6 @@ public interface NoteApprovalService extends IService<NoteApproval> {
     NoteApprovalVO getApprovalDetail(Long approvalId, Long userId, String role);
 
     NoteApprovalVO viewApproval(Long approvalId, Long adminId);
+
+    NoteVO viewApprovalNote(Long approvalId, Long adminId);
 }

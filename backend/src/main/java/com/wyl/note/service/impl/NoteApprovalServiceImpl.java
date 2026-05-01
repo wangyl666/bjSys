@@ -152,6 +152,25 @@ public class NoteApprovalServiceImpl extends ServiceImpl<NoteApprovalMapper, Not
         return convertToVO(approval);
     }
 
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public NoteVO viewApprovalNote(Long approvalId, Long adminId) {
+        NoteApproval approval = getById(approvalId);
+        if (approval == null) {
+            throw new RuntimeException("审批记录不存在");
+        }
+        
+        if ("PENDING".equals(approval.getApprovalStatus()) && 
+            (approval.getViewedByAdmin() == null || approval.getViewedByAdmin() == 0)) {
+            approval.setViewedByAdmin(1);
+            approval.setViewedAt(LocalDateTime.now());
+            approval.setViewedAdminId(adminId);
+            updateById(approval);
+        }
+        
+        return noteService.getNoteByIdForAdmin(approval.getNoteId());
+    }
+
     private NoteApprovalVO convertToVO(NoteApproval approval) {
         NoteApprovalVO vo = new NoteApprovalVO();
         BeanUtils.copyProperties(approval, vo);

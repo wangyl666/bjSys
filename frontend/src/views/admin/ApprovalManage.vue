@@ -179,8 +179,7 @@ import { ref, reactive, onMounted, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import Vditor from 'vditor'
-import { getPendingApprovals, processApproval, getMyApprovals, viewApproval } from '@/api/approval'
-import { getNoteById } from '@/api/note'
+import { getPendingApprovals, processApproval, getMyApprovals, viewApprovalNote } from '@/api/approval'
 import dayjs from 'dayjs'
 import type { NoteApprovalVO, NoteVO } from '@/types'
 
@@ -260,17 +259,16 @@ const handleStatusChange = () => {
 }
 
 const handleViewNote = async (approval: NoteApprovalVO) => {
-  if (!approval.noteId) return
+  if (!approval.id) return
   
   currentViewingApprovalId.value = approval.id
   
   try {
-    const res = await getNoteById(approval.noteId)
+    const res = await viewApprovalNote(approval.id)
     selectedNote.value = res.data
     noteDetailVisible.value = true
     
     if (approval.approvalStatus === 'PENDING' && approval.viewedByAdmin !== 1) {
-      await viewApproval(approval.id)
       approval.viewedByAdmin = 1
       ElMessage.success('已标记为已查看')
     }

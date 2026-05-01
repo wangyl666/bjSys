@@ -80,4 +80,13 @@ public class NoteApprovalController {
         NoteApprovalVO approvalVO = noteApprovalService.viewApproval(approvalId, userDetails.getId());
         return Result.success("已标记为已查看", approvalVO);
     }
+
+    @Operation(summary = "管理员查看待审核笔记详情（同时标记为已查看）")
+    @GetMapping("/view-note/{approvalId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public Result<NoteVO> viewApprovalNote(@PathVariable Long approvalId,
+                                             @AuthenticationPrincipal UserDetailsImpl userDetails) {
+        NoteVO noteVO = noteApprovalService.viewApprovalNote(approvalId, userDetails.getId());
+        return Result.success(noteVO);
+    }
 }

@@ -241,6 +241,12 @@ const initEditor = () => {
       'undo', 'redo', '|',
       'fullscreen', 'preview', 'info'
     ],
+    toolbarConfig: {
+      table: {
+        maxRow: 20,
+        maxCol: 10
+      }
+    },
     cache: {
       enable: false
     },

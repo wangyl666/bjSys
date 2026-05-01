@@ -108,6 +108,19 @@ public class NoteServiceImpl extends ServiceImpl<NoteMapper, Note> implements No
                 throw new RuntimeException("该笔记尚未通过审核");
             }
         }
+        return convertToNoteVO(note);
+    }
+
+    @Override
+    public NoteVO getNoteByIdForAdmin(Long id) {
+        Note note = getById(id);
+        if (note == null) {
+            throw new RuntimeException("笔记不存在");
+        }
+        return convertToNoteVO(note);
+    }
+
+    private NoteVO convertToNoteVO(Note note) {
         NoteVO vo = new NoteVO();
         BeanUtils.copyProperties(note, vo);
 
