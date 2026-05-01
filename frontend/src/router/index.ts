@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router'
 import { useUserStore } from '@/store/user'
+import { ElMessage } from 'element-plus'
 
 const routes: RouteRecordRaw[] = [
   {
@@ -17,13 +18,37 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/',
     component: () => import('@/layouts/MainLayout.vue'),
-    redirect: '/notes',
+    redirect: '/',
     children: [
       {
+        path: '',
+        name: 'Home',
+        component: () => import('@/views/home/Home.vue'),
+        meta: { title: '首页', requiresAuth: true }
+      },
+      {
+        path: 'knowledge',
+        name: 'KnowledgeBase',
+        component: () => import('@/views/knowledge/KnowledgeBase.vue'),
+        meta: { title: '知识库', requiresAuth: true }
+      },
+      {
+        path: 'graph',
+        name: 'TagGraph',
+        component: () => import('@/views/knowledge/TagGraph.vue'),
+        meta: { title: '智慧图谱', requiresAuth: true }
+      },
+      {
         path: 'notes',
-        name: 'Notes',
+        name: 'NoteList',
         component: () => import('@/views/notes/NoteList.vue'),
-        meta: { title: '笔记列表', requiresAuth: true }
+        meta: { title: '我的笔记', requiresAuth: true }
+      },
+      {
+        path: 'tags',
+        name: 'TagManage',
+        component: () => import('@/views/notes/TagManage.vue'),
+        meta: { title: '标签管理', requiresAuth: true }
       },
       {
         path: 'notes/create',
@@ -41,6 +66,30 @@ const routes: RouteRecordRaw[] = [
         path: 'notes/:id',
         name: 'NoteDetail',
         component: () => import('@/views/notes/NoteDetail.vue'),
+        meta: { title: '笔记详情', requiresAuth: true }
+      },
+      {
+        path: 'approvals',
+        name: 'ApprovalRecord',
+        component: () => import('@/views/notes/ApprovalRecord.vue'),
+        meta: { title: '发布记录', requiresAuth: true }
+      },
+      {
+        path: 'admin/approvals',
+        name: 'ApprovalManage',
+        component: () => import('@/views/admin/ApprovalManage.vue'),
+        meta: { title: '审批管理', requiresAuth: true, requiresAdmin: true }
+      },
+      {
+        path: 'community',
+        name: 'Community',
+        component: () => import('@/views/community/CommunityList.vue'),
+        meta: { title: '笔记社区', requiresAuth: true }
+      },
+      {
+        path: 'community/:id',
+        name: 'CommunityNoteDetail',
+        component: () => import('@/views/community/CommunityNoteDetail.vue'),
         meta: { title: '笔记详情', requiresAuth: true }
       }
     ]
@@ -63,13 +112,23 @@ router.beforeEach(async (to, _from, next) => {
   } else if (token && !userStore.isLoggedIn) {
     try {
       await userStore.fetchCurrentUser()
+      
+      if (to.meta.requiresAdmin && userStore.userInfo?.role !== 'ADMIN') {
+        ElMessage?.warning('无权限访问该页面')
+        next('/')
+        return
+      }
+      
       next()
     } catch (error) {
       localStorage.removeItem('token')
       next('/login')
     }
   } else if ((to.path === '/login' || to.path === '/register') && token) {
-    next('/notes')
+    next('/')
+  } else if (to.meta.requiresAdmin && userStore.isLoggedIn && userStore.userInfo?.role !== 'ADMIN') {
+    ElMessage?.warning('无权限访问该页面')
+    next('/')
   } else {
     next()
   }

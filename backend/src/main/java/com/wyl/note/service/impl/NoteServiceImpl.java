@@ -41,6 +41,7 @@ public class NoteServiceImpl extends ServiceImpl<NoteMapper, Note> implements No
         note.setUserId(userId);
         note.setViewCount(0);
         note.setIsPublic(noteDTO.getIsPublic() != null ? noteDTO.getIsPublic() : 0);
+        note.setApprovalStatus("DRAFT");
         note.setCreatedAt(LocalDateTime.now());
         note.setUpdatedAt(LocalDateTime.now());
         save(note);
@@ -59,8 +60,19 @@ public class NoteServiceImpl extends ServiceImpl<NoteMapper, Note> implements No
         if (note == null || !note.getUserId().equals(userId)) {
             throw new RuntimeException("笔记不存在或无权限操作");
         }
+        
+        boolean wasApproved = "APPROVED".equals(note.getApprovalStatus());
+        boolean isPublic = noteDTO.getIsPublic() != null && noteDTO.getIsPublic() == 1;
+        
         BeanUtils.copyProperties(noteDTO, note);
         note.setUpdatedAt(LocalDateTime.now());
+        
+        if (wasApproved && !isPublic) {
+            note.setApprovalStatus("DRAFT");
+        } else if (wasApproved && isPublic) {
+            note.setApprovalStatus("DRAFT");
+        }
+        
         updateById(note);
 
         noteTagService.remove(new LambdaQueryWrapper<NoteTag>().eq(NoteTag::getNoteId, note.getId()));
@@ -88,9 +100,27 @@ public class NoteServiceImpl extends ServiceImpl<NoteMapper, Note> implements No
         if (note == null) {
             throw new RuntimeException("笔记不存在");
         }
-        if (note.getIsPublic() == 0 && !note.getUserId().equals(userId)) {
-            throw new RuntimeException("无权限查看此笔记");
+        if (!note.getUserId().equals(userId)) {
+            if (note.getIsPublic() == 0) {
+                throw new RuntimeException("无权限查看此笔记");
+            }
+            if (!"APPROVED".equals(note.getApprovalStatus())) {
+                throw new RuntimeException("该笔记尚未通过审核");
+            }
         }
+        return convertToNoteVO(note);
+    }
+
+    @Override
+    public NoteVO getNoteByIdForAdmin(Long id) {
+        Note note = getById(id);
+        if (note == null) {
+            throw new RuntimeException("笔记不存在");
+        }
+        return convertToNoteVO(note);
+    }
+
+    private NoteVO convertToNoteVO(Note note) {
         NoteVO vo = new NoteVO();
         BeanUtils.copyProperties(note, vo);
 
@@ -164,5 +194,43 @@ public class NoteServiceImpl extends ServiceImpl<NoteMapper, Note> implements No
             }).collect(Collectors.toList());
             noteTagService.saveBatch(noteTags);
         }
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public NoteVO copyNote(Long id, Long userId) {
+        Note originalNote = getById(id);
+        if (originalNote == null) {
+            throw new RuntimeException("笔记不存在");
+        }
+        if (!originalNote.getUserId().equals(userId) && originalNote.getIsPublic() == 0) {
+            throw new RuntimeException("无权限复制此笔记");
+        }
+        if (!originalNote.getUserId().equals(userId) && !"APPROVED".equals(originalNote.getApprovalStatus())) {
+            throw new RuntimeException("该笔记尚未通过审核，无法复制");
+        }
+
+        Note copiedNote = new Note();
+        BeanUtils.copyProperties(originalNote, copiedNote);
+        copiedNote.setId(null);
+        copiedNote.setUserId(userId);
+        copiedNote.setTitle(originalNote.getTitle() + " (副本)");
+        copiedNote.setViewCount(0);
+        copiedNote.setIsPublic(0);
+        copiedNote.setApprovalStatus("DRAFT");
+        copiedNote.setCreatedAt(LocalDateTime.now());
+        copiedNote.setUpdatedAt(LocalDateTime.now());
+        save(copiedNote);
+
+        List<NoteTag> originalNoteTags = noteTagService.list(
+                new LambdaQueryWrapper<NoteTag>().eq(NoteTag::getNoteId, id));
+        if (!CollectionUtils.isEmpty(originalNoteTags)) {
+            List<Long> tagIds = originalNoteTags.stream()
+                    .map(NoteTag::getTagId)
+                    .collect(Collectors.toList());
+            saveNoteTags(copiedNote.getId(), tagIds);
+        }
+
+        return getNoteById(copiedNote.getId(), userId);
     }
 }

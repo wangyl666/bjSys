@@ -16,4 +16,6 @@ public class CategoryVO {
     private LocalDateTime createdAt;
 
     private LocalDateTime updatedAt;
+
+    private Long noteCount;
 }
