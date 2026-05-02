@@ -222,6 +222,8 @@ const handleSendMessage = () => {
   }
 
   const messageContent = inputMessage.value.trim()
+  console.log('📤 发送消息:', messageContent)
+  
   const message = {
     type: 'TEXT',
     content: messageContent
@@ -230,9 +232,10 @@ const handleSendMessage = () => {
   sending.value = true
   try {
     ws.send(JSON.stringify(message))
+    console.log('✅ 消息已发送到服务器')
     inputMessage.value = ''
   } catch (error) {
-    console.error('发送消息失败:', error)
+    console.error('❌ 发送消息失败:', error)
     ElMessage.error('发送消息失败')
   } finally {
     sending.value = false
@@ -329,6 +332,10 @@ onUnmounted(() => {
 
 .message-item.system-message {
   justify-content: center;
+}
+
+.message-item.self-message {
+  justify-content: flex-end;
 }
 
 .system-content {

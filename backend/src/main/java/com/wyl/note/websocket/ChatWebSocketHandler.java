@@ -21,7 +21,8 @@ import java.util.concurrent.ConcurrentHashMap;
 public class ChatWebSocketHandler extends TextWebSocketHandler {
 
     private static final Map<Long, WebSocketSession> sessions = new ConcurrentHashMap<>();
-    private static final ObjectMapper objectMapper = new ObjectMapper();
+    
+    private final ObjectMapper objectMapper;
 
     private final ChatMessageService chatMessageService;
 
