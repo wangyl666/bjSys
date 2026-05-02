@@ -148,6 +148,7 @@ const fetchHistoryMessages = async () => {
 const connectWebSocket = () => {
   const token = localStorage.getItem('token')
   if (!token) {
+    console.error('WebSocket连接失败: 没有找到token')
     ElMessage.error('请先登录')
     return
   }
@@ -155,6 +156,7 @@ const connectWebSocket = () => {
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
   const wsUrl = `${protocol}//${window.location.host}/ws/chat?token=${encodeURIComponent(token)}`
   
+  console.log('尝试连接WebSocket:', wsUrl)
   connectionStatus.value = '连接中...'
   statusClass.value = 'connecting'
 
@@ -162,43 +164,47 @@ const connectWebSocket = () => {
     ws = new WebSocket(wsUrl)
 
     ws.onopen = () => {
-      console.log('WebSocket连接成功')
+      console.log('✅ WebSocket连接成功')
       isConnected.value = true
       connectionStatus.value = '已连接'
       statusClass.value = 'connected'
     }
 
     ws.onmessage = (event) => {
+      console.log('📨 收到WebSocket消息:', event.data)
       try {
         const message: ChatMessageVO = JSON.parse(event.data)
         messages.value.push(message)
         scrollToBottom()
       } catch (error) {
-        console.error('解析消息失败:', error)
+        console.error('❌ 解析消息失败:', error, '原始数据:', event.data)
       }
     }
 
-    ws.onclose = () => {
-      console.log('WebSocket连接已关闭')
+    ws.onclose = (event) => {
+      console.log('🔌 WebSocket连接已关闭', 'code:', event.code, 'reason:', event.reason, 'wasClean:', event.wasClean)
       isConnected.value = false
       connectionStatus.value = '已断开'
       statusClass.value = 'disconnected'
       
-      setTimeout(() => {
-        if (!isConnected.value) {
-          connectWebSocket()
-        }
-      }, 3000)
+      if (event.code !== 1000) {
+        console.log('⏰ 3秒后尝试重新连接...')
+        setTimeout(() => {
+          if (!isConnected.value) {
+            connectWebSocket()
+          }
+        }, 3000)
+      }
     }
 
     ws.onerror = (error) => {
-      console.error('WebSocket连接错误:', error)
+      console.error('❌ WebSocket连接错误:', error)
       isConnected.value = false
       connectionStatus.value = '连接失败'
       statusClass.value = 'disconnected'
     }
   } catch (error) {
-    console.error('创建WebSocket连接失败:', error)
+    console.error('❌ 创建WebSocket连接失败:', error)
     connectionStatus.value = '连接失败'
     statusClass.value = 'disconnected'
   }
