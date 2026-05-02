@@ -10,6 +10,8 @@ public interface CategoryService extends IService<Category> {
 
     CategoryVO createCategory(String name, Long userId);
 
+    CategoryVO updateCategory(Long id, String name, Long userId);
+
     void deleteCategory(Long id, Long userId);
 
     List<CategoryVO> getUserCategories(Long userId);

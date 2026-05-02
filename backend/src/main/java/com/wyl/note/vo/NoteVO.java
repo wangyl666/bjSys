@@ -24,6 +24,8 @@ public class NoteVO {
 
     private Integer isPublic;
 
+    private String approvalStatus;
+
     private Integer viewCount;
 
     private List<TagVO> tags;
