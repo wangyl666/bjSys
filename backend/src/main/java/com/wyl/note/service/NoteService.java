@@ -16,5 +16,9 @@ public interface NoteService extends IService<Note> {
 
     NoteVO getNoteById(Long id, Long userId);
 
-    Page<NoteVO> getNotePage(Long categoryId, String keyword, Integer page, Integer size, Long userId);
+    NoteVO getNoteByIdForAdmin(Long id);
+
+    Page<NoteVO> getNotePage(Long categoryId, String keyword, Long tagId, Integer page, Integer size, Long userId);
+
+    NoteVO copyNote(Long id, Long userId);
 }

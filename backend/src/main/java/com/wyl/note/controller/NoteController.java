@@ -58,10 +58,19 @@ public class NoteController {
     public Result<Page<NoteVO>> getNotePage(
             @RequestParam(required = false) Long categoryId,
             @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Long tagId,
             @RequestParam(defaultValue = "1") Integer page,
             @RequestParam(defaultValue = "10") Integer size,
             @AuthenticationPrincipal UserDetailsImpl userDetails) {
-        Page<NoteVO> notePage = noteService.getNotePage(categoryId, keyword, page, size, userDetails.getId());
+        Page<NoteVO> notePage = noteService.getNotePage(categoryId, keyword, tagId, page, size, userDetails.getId());
         return Result.success(notePage);
+    }
+
+    @Operation(summary = "复制笔记")
+    @PostMapping("/{id}/copy")
+    public Result<NoteVO> copyNote(@PathVariable Long id,
+                                     @AuthenticationPrincipal UserDetailsImpl userDetails) {
+        NoteVO noteVO = noteService.copyNote(id, userDetails.getId());
+        return Result.success("复制成功", noteVO);
     }
 }

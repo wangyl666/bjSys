@@ -41,6 +41,7 @@ public class NoteServiceImpl extends ServiceImpl<NoteMapper, Note> implements No
         note.setUserId(userId);
         note.setViewCount(0);
         note.setIsPublic(noteDTO.getIsPublic() != null ? noteDTO.getIsPublic() : 0);
+        note.setApprovalStatus("DRAFT");
         note.setCreatedAt(LocalDateTime.now());
         note.setUpdatedAt(LocalDateTime.now());
         save(note);
@@ -59,8 +60,19 @@ public class NoteServiceImpl extends ServiceImpl<NoteMapper, Note> implements No
         if (note == null || !note.getUserId().equals(userId)) {
             throw new RuntimeException("笔记不存在或无权限操作");
         }
+        
+        boolean wasApproved = "APPROVED".equals(note.getApprovalStatus());
+        boolean isPublic = noteDTO.getIsPublic() != null && noteDTO.getIsPublic() == 1;
+        
         BeanUtils.copyProperties(noteDTO, note);
         note.setUpdatedAt(LocalDateTime.now());
+        
+        if (wasApproved && !isPublic) {
+            note.setApprovalStatus("DRAFT");
+        } else if (wasApproved && isPublic) {
+            note.setApprovalStatus("DRAFT");
+        }
+        
         updateById(note);
 
         noteTagService.remove(new LambdaQueryWrapper<NoteTag>().eq(NoteTag::getNoteId, note.getId()));
@@ -88,9 +100,27 @@ public class NoteServiceImpl extends ServiceImpl<NoteMapper, Note> implements No
         if (note == null) {
             throw new RuntimeException("笔记不存在");
         }
-        if (note.getIsPublic() == 0 && !note.getUserId().equals(userId)) {
-            throw new RuntimeException("无权限查看此笔记");
+        if (!note.getUserId().equals(userId)) {
+            if (note.getIsPublic() == 0) {
+                throw new RuntimeException("无权限查看此笔记");
+            }
+            if (!"APPROVED".equals(note.getApprovalStatus())) {
+                throw new RuntimeException("该笔记尚未通过审核");
+            }
         }
+        return convertToNoteVO(note);
+    }
+
+    @Override
+    public NoteVO getNoteByIdForAdmin(Long id) {
+        Note note = getById(id);
+        if (note == null) {
+            throw new RuntimeException("笔记不存在");
+        }
+        return convertToNoteVO(note);
+    }
+
+    private NoteVO convertToNoteVO(Note note) {
         NoteVO vo = new NoteVO();
         BeanUtils.copyProperties(note, vo);
 
@@ -118,22 +148,37 @@ public class NoteServiceImpl extends ServiceImpl<NoteMapper, Note> implements No
     }
 
     @Override
-    public Page<NoteVO> getNotePage(Long categoryId, String keyword, Integer page, Integer size, Long userId) {
+    public Page<NoteVO> getNotePage(Long categoryId, String keyword, Long tagId, Integer page, Integer size, Long userId) {
         Page<Note> notePage = new Page<>(page, size);
-        LambdaQueryWrapper<Note> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(Note::getUserId, userId)
-                .orderByDesc(Note::getUpdatedAt);
+        Page<Note> resultPage;
 
-        if (categoryId != null) {
-            wrapper.eq(Note::getCategoryId, categoryId);
-        }
-        if (StringUtils.hasText(keyword)) {
-            wrapper.and(w -> w.like(Note::getTitle, keyword)
-                    .or().like(Note::getContent, keyword)
-                    .or().like(Note::getSummary, keyword));
+        if (tagId != null) {
+            if (categoryId != null && StringUtils.hasText(keyword)) {
+                resultPage = baseMapper.selectNotesByTagIdCategoryIdAndKeyword(notePage, tagId, categoryId, keyword, userId);
+            } else if (categoryId != null) {
+                resultPage = baseMapper.selectNotesByTagIdAndCategoryId(notePage, tagId, categoryId, userId);
+            } else if (StringUtils.hasText(keyword)) {
+                resultPage = baseMapper.selectNotesByTagIdAndKeyword(notePage, tagId, keyword, userId);
+            } else {
+                resultPage = baseMapper.selectNotesByTagId(notePage, tagId, userId);
+            }
+        } else {
+            LambdaQueryWrapper<Note> wrapper = new LambdaQueryWrapper<>();
+            wrapper.eq(Note::getUserId, userId)
+                    .orderByDesc(Note::getUpdatedAt);
+
+            if (categoryId != null) {
+                wrapper.eq(Note::getCategoryId, categoryId);
+            }
+            if (StringUtils.hasText(keyword)) {
+                wrapper.and(w -> w.like(Note::getTitle, keyword)
+                        .or().like(Note::getContent, keyword)
+                        .or().like(Note::getSummary, keyword));
+            }
+
+            resultPage = page(notePage, wrapper);
         }
 
-        Page<Note> resultPage = page(notePage, wrapper);
         Page<NoteVO> voPage = new Page<>(resultPage.getCurrent(), resultPage.getSize(), resultPage.getTotal());
 
         List<NoteVO> voList = new ArrayList<>();
@@ -164,5 +209,43 @@ public class NoteServiceImpl extends ServiceImpl<NoteMapper, Note> implements No
             }).collect(Collectors.toList());
             noteTagService.saveBatch(noteTags);
         }
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public NoteVO copyNote(Long id, Long userId) {
+        Note originalNote = getById(id);
+        if (originalNote == null) {
+            throw new RuntimeException("笔记不存在");
+        }
+        if (!originalNote.getUserId().equals(userId) && originalNote.getIsPublic() == 0) {
+            throw new RuntimeException("无权限复制此笔记");
+        }
+        if (!originalNote.getUserId().equals(userId) && !"APPROVED".equals(originalNote.getApprovalStatus())) {
+            throw new RuntimeException("该笔记尚未通过审核，无法复制");
+        }
+
+        Note copiedNote = new Note();
+        BeanUtils.copyProperties(originalNote, copiedNote);
+        copiedNote.setId(null);
+        copiedNote.setUserId(userId);
+        copiedNote.setTitle(originalNote.getTitle() + " (副本)");
+        copiedNote.setViewCount(0);
+        copiedNote.setIsPublic(0);
+        copiedNote.setApprovalStatus("DRAFT");
+        copiedNote.setCreatedAt(LocalDateTime.now());
+        copiedNote.setUpdatedAt(LocalDateTime.now());
+        save(copiedNote);
+
+        List<NoteTag> originalNoteTags = noteTagService.list(
+                new LambdaQueryWrapper<NoteTag>().eq(NoteTag::getNoteId, id));
+        if (!CollectionUtils.isEmpty(originalNoteTags)) {
+            List<Long> tagIds = originalNoteTags.stream()
+                    .map(NoteTag::getTagId)
+                    .collect(Collectors.toList());
+            saveNoteTags(copiedNote.getId(), tagIds);
+        }
+
+        return getNoteById(copiedNote.getId(), userId);
     }
 }
