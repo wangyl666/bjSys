@@ -91,6 +91,12 @@ const routes: RouteRecordRaw[] = [
         name: 'CommunityNoteDetail',
         component: () => import('@/views/community/CommunityNoteDetail.vue'),
         meta: { title: '笔记详情', requiresAuth: true }
+      },
+      {
+        path: 'chat',
+        name: 'ChatRoom',
+        component: () => import('@/views/chat/ChatRoom.vue'),
+        meta: { title: '公共聊天室', requiresAuth: true }
       }
     ]
   }

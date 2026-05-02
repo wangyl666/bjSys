@@ -148,22 +148,37 @@ public class NoteServiceImpl extends ServiceImpl<NoteMapper, Note> implements No
     }
 
     @Override
-    public Page<NoteVO> getNotePage(Long categoryId, String keyword, Integer page, Integer size, Long userId) {
+    public Page<NoteVO> getNotePage(Long categoryId, String keyword, Long tagId, Integer page, Integer size, Long userId) {
         Page<Note> notePage = new Page<>(page, size);
-        LambdaQueryWrapper<Note> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(Note::getUserId, userId)
-                .orderByDesc(Note::getUpdatedAt);
+        Page<Note> resultPage;
 
-        if (categoryId != null) {
-            wrapper.eq(Note::getCategoryId, categoryId);
-        }
-        if (StringUtils.hasText(keyword)) {
-            wrapper.and(w -> w.like(Note::getTitle, keyword)
-                    .or().like(Note::getContent, keyword)
-                    .or().like(Note::getSummary, keyword));
+        if (tagId != null) {
+            if (categoryId != null && StringUtils.hasText(keyword)) {
+                resultPage = baseMapper.selectNotesByTagIdCategoryIdAndKeyword(notePage, tagId, categoryId, keyword, userId);
+            } else if (categoryId != null) {
+                resultPage = baseMapper.selectNotesByTagIdAndCategoryId(notePage, tagId, categoryId, userId);
+            } else if (StringUtils.hasText(keyword)) {
+                resultPage = baseMapper.selectNotesByTagIdAndKeyword(notePage, tagId, keyword, userId);
+            } else {
+                resultPage = baseMapper.selectNotesByTagId(notePage, tagId, userId);
+            }
+        } else {
+            LambdaQueryWrapper<Note> wrapper = new LambdaQueryWrapper<>();
+            wrapper.eq(Note::getUserId, userId)
+                    .orderByDesc(Note::getUpdatedAt);
+
+            if (categoryId != null) {
+                wrapper.eq(Note::getCategoryId, categoryId);
+            }
+            if (StringUtils.hasText(keyword)) {
+                wrapper.and(w -> w.like(Note::getTitle, keyword)
+                        .or().like(Note::getContent, keyword)
+                        .or().like(Note::getSummary, keyword));
+            }
+
+            resultPage = page(notePage, wrapper);
         }
 
-        Page<Note> resultPage = page(notePage, wrapper);
         Page<NoteVO> voPage = new Page<>(resultPage.getCurrent(), resultPage.getSize(), resultPage.getTotal());
 
         List<NoteVO> voList = new ArrayList<>();

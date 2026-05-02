@@ -35,12 +35,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Refresh } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
 import { getTagGraph } from '@/api/tag'
 import type { TagGraphVO, GraphNodeVO, GraphEdgeVO } from '@/types'
+
+const router = useRouter()
 
 const chartRef = ref<HTMLElement | null>(null)
 const loading = ref(false)
@@ -175,6 +178,17 @@ const renderChart = () => {
   }
 
   chartInstance.value.setOption(option)
+
+  chartInstance.value.off('click')
+  chartInstance.value.on('click', (params: any) => {
+    if (params.dataType === 'node') {
+      const tagId = Number(params.data.id)
+      router.push({
+        path: '/notes',
+        query: { tagId: tagId.toString() }
+      })
+    }
+  })
 }
 
 const handleResize = () => {

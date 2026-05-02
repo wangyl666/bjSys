@@ -142,3 +142,14 @@ INSERT INTO tag (user_id, name, color) VALUES
 (1, '编程', '#409EFF'),
 (1, '数学', '#722ED1'),
 (1, '英语', '#00B42A');
+
+-- 聊天室消息表
+CREATE TABLE IF NOT EXISTS chat_message (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '消息ID',
+    user_id BIGINT NOT NULL COMMENT '发送用户ID',
+    content TEXT NOT NULL COMMENT '消息内容',
+    message_type VARCHAR(20) DEFAULT 'TEXT' COMMENT '消息类型: TEXT-文本, IMAGE-图片, SYSTEM-系统消息',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '发送时间',
+    INDEX idx_user_id (user_id),
+    INDEX idx_created_at (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='聊天室消息表';

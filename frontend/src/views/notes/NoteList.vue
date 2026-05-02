@@ -18,6 +18,26 @@
             :value="category.id"
           />
         </el-select>
+        <el-select
+          v-model="selectedTag"
+          placeholder="选择标签"
+          clearable
+          @change="handleTagChange"
+          class="tag-select"
+        >
+          <el-option label="全部标签" :value="null" />
+          <el-option
+            v-for="tag in tags"
+            :key="tag.id"
+            :label="tag.name"
+            :value="tag.id"
+          >
+            <span class="tag-option">
+              <span class="tag-dot" :style="{ backgroundColor: tag.color }"></span>
+              <span>{{ tag.name }}</span>
+            </span>
+          </el-option>
+        </el-select>
       </div>
       <div class="header-right">
         <el-input
@@ -112,23 +132,27 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, reactive, onMounted, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getNoteList, deleteNote, copyNote } from '@/api/note'
 import { getCategories } from '@/api/category'
+import { getTags } from '@/api/tag'
 import { Plus, Edit, View, Delete, Search, CopyDocument } from '@element-plus/icons-vue'
 import dayjs from 'dayjs'
-import type { NoteVO, CategoryVO, PageParams } from '@/types'
+import type { NoteVO, CategoryVO, TagVO, PageParams } from '@/types'
 
 const router = useRouter()
+const route = useRoute()
 
 const loading = ref(false)
 const noteList = ref<NoteVO[]>([])
 const categories = ref<CategoryVO[]>([])
+const tags = ref<TagVO[]>([])
 const total = ref(0)
 const keyword = ref('')
 const selectedCategory = ref<number | null>(null)
+const selectedTag = ref<number | null>(null)
 
 const pageParams = reactive<PageParams>({
   page: 1,
@@ -145,7 +169,8 @@ const fetchNoteList = async () => {
     const params = {
       ...pageParams,
       categoryId: selectedCategory.value,
-      keyword: keyword.value
+      keyword: keyword.value,
+      tagId: selectedTag.value
     }
     const res = await getNoteList(params)
     noteList.value = res.data.records
@@ -163,6 +188,15 @@ const fetchCategories = async () => {
     categories.value = res.data
   } catch (error) {
     console.error('获取分类列表失败:', error)
+  }
+}
+
+const fetchTags = async () => {
+  try {
+    const res = await getTags()
+    tags.value = res.data
+  } catch (error) {
+    console.error('获取标签列表失败:', error)
   }
 }
 
@@ -209,14 +243,34 @@ const handleCategoryChange = () => {
   fetchNoteList()
 }
 
+const handleTagChange = () => {
+  pageParams.page = 1
+  fetchNoteList()
+}
+
 const handleSearch = () => {
   pageParams.page = 1
   fetchNoteList()
 }
 
+watch(
+  () => route.query.tagId,
+  (newTagId) => {
+    if (newTagId) {
+      selectedTag.value = Number(newTagId)
+      pageParams.page = 1
+      fetchNoteList()
+    }
+  }
+)
+
 onMounted(() => {
+  if (route.query.tagId) {
+    selectedTag.value = Number(route.query.tagId)
+  }
   fetchNoteList()
   fetchCategories()
+  fetchTags()
 })
 </script>
 
@@ -250,6 +304,22 @@ onMounted(() => {
 
 .category-select {
   width: 150px;
+}
+
+.tag-select {
+  width: 150px;
+}
+
+.tag-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tag-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
 }
 
 .header-right {

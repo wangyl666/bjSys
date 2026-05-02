@@ -132,6 +132,7 @@ export interface PageParams {
   size: number
   categoryId?: number
   keyword?: string
+  tagId?: number
 }
 
 export interface CommunityNoteVO {
@@ -173,4 +174,21 @@ export interface CreateCommentDTO {
   parentId?: number
   replyToUserId?: number
   content: string
+}
+
+export interface ChatMessageVO {
+  id: number
+  userId: number
+  content: string
+  messageType: 'TEXT' | 'SYSTEM'
+  createdAt: string
+  user?: UserVO
+}
+
+export interface PageResult<T> {
+  records: T[]
+  total: number
+  size: number
+  current: number
+  pages: number
 }
